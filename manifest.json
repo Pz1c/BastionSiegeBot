@@ -1,0 +1,25 @@
+{
+  "manifest_version": 2,
+  "name": "BastionSiegeBot",
+  "description": "This extension allows automate interaction with Bastion Siege game",
+  "version": "1.0",
+
+ 
+  "page_action": {
+    "default_icon": "bsb_icon.png",
+    "default_title": "Battle Siege bot"
+  },
+  
+  "permissions": ["activeTab"],
+  
+  "content_scripts": [
+    {
+      "matches": ["https://web.telegram.org/*"],
+      "js": ["bot_installer.js"],
+      "run_at": "document_end"
+    }
+  ],
+  
+  "web_accessible_resources": ["bot.js"]
+  
+}
