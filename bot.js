@@ -27,6 +27,8 @@ var command_wall = 'Walls';
 var command_workshop = 'Workshop';
 var command_trebuchet = 'Trebuchet';
 var command_war = 'War';
+var command_before_battle = 'Before battle';
+var command_search_anyone = 'Anyone';
 
 var arr_command = [command_top_level,command_info,command_building,command_town_hall,
                    command_house,command_trade,command_trade_buy,command_trade_food,
@@ -79,6 +81,7 @@ var ai_position_id_workshop = 17;
 var ai_position_id_trebuchet = 18;
 var ai_position_id_recruit = 19;
 var ai_position_id_war = 20;
+var ai_position_id_before_battle = 21;
 
 var ai_task_id_get_info = 0;
 var ai_task_id_buy_resources = 1;
@@ -108,6 +111,7 @@ var arr_building = [
 {code:'town_hall',img:'🏤',command:command_town_hall,search_key:'Town hall',position_id:ai_position_id_town_hall,index:0,hire_position:'',hire_count:0},
 {code:'storage',img:'🏚',command:command_storage,search_key:'🏚Storage',position_id:ai_position_id_storage,index:1,hire_position:ai_position_id_hire,hire_count:10},
 {code:'house',img:'🏘',command:command_house,search_key:'Houses',position_id:ai_position_id_houses,index:2,hire_position:'',hire_count:0},
+{code:'war',img:'',command:command_war,search_key:'Wins',position_id:ai_position_id_war,index:-1,hire_position:'',hire_count:0},
 {code:'barracks',img:'🛡',command:command_barrack,search_key:'Barracks',position_id:ai_position_id_barracks,index:6,hire_position:ai_position_id_recruit,hire_count:40},
 {code:'walls',img:'🏰',command:command_wall,search_key:'Walls',position_id:ai_position_id_walls,index:7,hire_position:ai_position_id_recruit,hire_count:10},
 {code:'sawmill',img:'🌲',command:command_sawmill,search_key:'Sawmill',position_id:ai_position_id_sawmill,index:3,hire_position:ai_position_id_hire,hire_count:10},
@@ -121,6 +125,7 @@ var arr_building = [
 {code:'trade',img:'',command:command_trade,search_key:'Resources',position_id:ai_position_id_trade,index:-1,hire_position:'',hire_count:0},
 {code:'choose_number',img:'',command:command_trade_food,search_key:'Choose number.',position_id:0,index:-1,hire_position:'',hire_count:0},
 {code:'workshop',img:'',command:command_workshop,search_key:'Workshop',position_id:ai_position_id_workshop,index:-1,hire_position:'',hire_count:0},
+{code:'before_battle',img:'',command:command_before_battle,search_key:'Our scouts found',position_id:ai_position_id_before_battle,index:-1,hire_position:'',hire_count:0}
 ];
 
 var arr_upgrade = ['gold', 'wood', 'stone', 'food'];
@@ -143,7 +148,7 @@ console.log("bot there!!!");
 var arr_command_stack = [], last_command, ai_step_id = ai_step_id_initial, ai_task_id = ai_task_id_get_info, ai_timeout = 0;
 var ai_position_id = ai_position_id_top;
 var ai_position_parent_id = ai_position_id_top;
-var castle={position_id:-1,reserved_gold:0,task_list:[],food_settings:{min_day:10,buy_on:100},build_settings:{build_array:['town_hall', 'house']}};
+var castle={under_attack:false,war_delay:0,position_id:-1,reserved_gold:0,task_list:[],food_settings:{min_day:10,buy_on:100},build_settings:{build_array:['town_hall', 'house']},opponent:{}};
 
 //AI core
 
@@ -170,8 +175,11 @@ function getShortPathToDestination(new_position_id) {
   if (new_position_id === ai_position_id) {
     return '';
   }
-  if (ai_position_id === ai_position_id_hire) {
-    return command_back;
+  if ((ai_position_id === ai_position_id_top) && ((new_position_id === ai_position_id_hire) || (new_position_id === ai_position_id_recruit))) {
+    return '';
+  }
+  if ((ai_position_id === ai_position_id_hire) || (ai_position_id === ai_position_id_recruit)) {
+    //return command_back;
   }
   if (((arr_building_child.indexOf(new_position_id) != -1) && (arr_building_child.indexOf(ai_position_id) != -1)) ||
       ((arr_buy_resource_lst.indexOf(new_position_id) != -1) && (arr_buy_resource_lst.indexOf(ai_position_id) != -1))) {
@@ -314,7 +322,12 @@ function getShortPathToDestination(new_position_id) {
       if (ai_position_id === ai_position_id_hire) {
         return command_back;
       }
-      break;    
+      break;
+    case ai_position_id_war:
+      if (ai_position_id === ai_position_id_top) {
+        return command_war;
+      }
+      break;
   }
   return command_top_level
 }
@@ -365,7 +378,7 @@ function foodDecision() {
 }
 
 function getBuildCodeForUp() {
-  var up_code;
+  castle.up_code = '';
   var min_cost = -1;
   for (var i = 0, Ln = arr_building.length; i < Ln; ++i) {
     if (!castle[arr_building[i].code]) {
@@ -379,16 +392,16 @@ function getBuildCodeForUp() {
     console.log('getBuildCodeForUp', arr_building[i].code, min_cost, castle[arr_building[i].code].up_full_cost);
     if ((min_cost < 0) || (min_cost > castle[arr_building[i].code].up_full_cost)) {
       min_cost = castle[arr_building[i].code].up_full_cost;
-      up_code = arr_building[i].code;
+      castle.up_code = arr_building[i].code;
     }    
   }
   
-  console.log('getBuildCodeForUp', up_code, min_cost);
-  if ((Math.max(castle[up_code].level_up_wood, castle[up_code].level_up_stone) > castle.storage.wood_max) || ((castle.storage.worker_max * 1 <= Math.min(castle.farm.worker_max * 1, castle.sawmill.worker_max * 1, castle.mine.worker_max * 1)) && (arr_support_buildings.indexOf(up_code) != -1))) {
-    up_code = 'storage';
+  console.log('getBuildCodeForUp', castle.up_code, min_cost);
+  if ((Math.max(castle[castle.up_code].level_up_wood, castle[castle.up_code].level_up_stone) > castle.storage.wood_max) || ((castle.storage.worker_max * 1 <= Math.min(castle.farm.worker_max * 1, castle.sawmill.worker_max * 1, castle.mine.worker_max * 1)) && (arr_support_buildings.indexOf(castle.up_code) != -1))) {
+    castle.up_code = 'storage';
   }
   
-  return up_code;
+  return castle.up_code;
 }
 
 function buildDecision() {
@@ -422,10 +435,16 @@ function buildDecision() {
 }
 
 function hireDecision() {
+  var p = castle.house.level * 1;
   for (var i = 0, Ln = arr_building.length; i < Ln; ++i) {
     if ((arr_building[i].hire_count > 0) && castle[arr_building[i].code] && (castle[arr_building[i].code].worker_current < castle[arr_building[i].code].worker_max)) {
-      castle.task_list.push({type:'command',position_id:arr_building[i].position_id,command:arr_building[i].hire_position === ai_position_id_hire ? command_hire : command_recruit});
-      castle.task_list.push({type:'command',position_id:arr_building[i].hire_position,command:(castle[arr_building[i].code].worker_max - castle[arr_building[i].code].worker_current)});
+      var need = Math.min(p, castle[arr_building[i].code].worker_max - castle[arr_building[i].code].worker_current);
+      castle.task_list.push({type:'command',position_id:arr_building[i].position_id,command:''});
+      castle.task_list.push({type:'command',position_id:arr_building[i].hire_position,command:need});
+      p -= need;
+      if (p <= 0) {
+        break;
+      }
     }
   }
 }
@@ -439,12 +458,18 @@ function calcAITimeout() {
       task_time = Math.round((castle.task_list[0].until - time()) / 60);
     }
   }
+  
   var food_time = castle.daily_food_real > 0 ? castle.food/castle.daily_food_real - 10 : 10000000;
   food_time = food_time > 0 ? food_time : min_time;
+  
   var wait_time = (castle[up_code].up_full_cost-(castle.gold-castle.reserved_gold))/(castle.gold_daily + Math.min(castle.mine.produce, castle.storage.worker_max) * 2 + Math.min(castle.sawmill.produce, castle.storage.worker_max) * 2);
   wait_time = wait_time > 0 ? wait_time : min_time;
+  
+  var war_time = castle.war_delay;
+  war_time = war_time > 0 ? war_time : min_time;
+  
   console.log('timer check', task_time, food_time, wait_time);
-  ai_timeout = Math.max(0, Math.min(task_time, food_time, wait_time));
+  ai_timeout = Math.max(0, Math.min(task_time, food_time, wait_time, war_time));
   if (ai_timeout === min_time) {
     ai_timeout = -1;
   }
@@ -461,11 +486,12 @@ function calcBaseParams() {
   castle.gold_daily = castle.house.worker_current * (0.5 + 0.1 * castle.town_hall.level);  
 }
 
-function getDecision() {
+function taskDecision() {
   var exit = false;
   if (castle.task_list.length > 100) {
     castle.task_list = [];
   }
+  
   while (!exit && (castle.task_list.length > 0)) {
     switch(castle.task_list[0].type) {
       case 'wait':
@@ -482,19 +508,96 @@ function getDecision() {
       case 'command':
         castle.position_id = castle.task_list[0].position_id;
         if (castle.position_id === ai_position_id) {
-          console.log('getDecision', 'task command', 'before', castle.task_list, castle.position_id);
           castle.position_id = -1;
           var task = castle.task_list.shift();
-          console.log('getDecision', 'task command', 'after', castle.task_list, task);
-          return task.command;
+          if (task.command != '') {
+            return task.command;
+          }
         } else {
           exit = true;
         }
         break;
     }
   }
+  return '';
+}
+
+function hasTask() {
+  return (castle.task_list.length > 0) && (castle.task_list[0].type != 'wait');
+}
+
+function spentGold() {
+  if (!castle.up_code) {
+    return;
+  }
+  var max_gold = Math.round(castle[castle.up_code].level_up_gold * 1.5);
+  if (castle.gold < max_gold) {
+    return;
+  }
   
-  var command = getDecisionInfo();
+  if (hasTask()) {
+    return;
+  }
+  
+  castle.task_list = [];
+  var resources_to_buy = Math.round((castle.gold - max_gold) / 4);
+  castle.task_list.push({type:'command',position_id:arr_buy_resource['wood'],command:resources_to_buy});
+  castle.task_list.push({type:'command',position_id:arr_buy_resource['stone'],command:resources_to_buy});
+}
+
+function defenceDecision() {
+  if (castle.under_attack) {
+    castle.task_list = [];
+  }
+}
+
+function attackDecision() {
+  return;
+  
+  if (hasTask()) {
+    return;
+  }
+  castle.task_list = [];
+  
+  if ((ai_position_id != ai_position_id_war) && (ai_position_id != ai_position_id_before_battle)) {
+    castle.task_list.push({type:'command',position_id:ai_position_id_war,command:command_search_anyone});
+    return;
+  }
+  
+  if (!((castle.opponent.karma >= 0) && (castle.opponent.karma <= 2) && (castle.opponent.territory <= castle.territory * 0.8) && (castle.opponent.territory >= castle.territory * 0.2))) {
+    castle.task_list.push({type:'command',position_id:ai_position_id_war,command:command_search_anyone});
+    return;
+  }
+  
+  if (!castle.opponent.btn_id) {
+    return;
+  }
+  
+  clickButton(castle.opponent.btn_id);
+}
+
+function warDecision() {
+  if (castle.under_attack) {
+    castle.task_list = [];
+  }
+  if (hasTask()) {
+    return;
+  }
+  castle.task_list = [];
+  if (castle.under_attack) {
+    defenceDecision();
+  } else {
+    attackDecision();
+  }
+}
+
+function getDecision() {
+  var command = taskDecision();
+  if (command != '') {
+    return command;
+  }
+    
+  command = getDecisionInfo();
   if (command != '') {
     return command;
   }
@@ -503,12 +606,18 @@ function getDecision() {
   castle.reserved_gold = 0;
   console.log('Decision before', castle);
   calcBaseParams();
+  console.log('defence before', castle);
+  defenceDecision();
   console.log('foodDecision before', castle);
   foodDecision();
   console.log('buildDecision before', castle);
   buildDecision();
   console.log('hireDecision before', castle);
   hireDecision();
+  console.log('spentGold before', castle);
+  spentGold();
+  console.log('attack before', castle);
+  attackDecision();
   console.log('getDecision', castle);
   calcAITimeout();
   
@@ -562,14 +671,6 @@ function AIcycle() {
   var command = '';
   console.log('AIcycle before', command, ai_step_id, ai_task_id, castle.task_list);
   command = getDecision();
-  /*switch(ai_task_id) {
-    case ai_task_id_get_info:
-      command = getCommandForInfoTask();
-      break;
-    case ai_task_id_buy_resources:
-      command = getCommandForMarketTask();
-      break;
-  }*/  
   console.log('AIcycle after', command, ai_step_id, ai_task_id, castle.task_list);
   
   if (command != '') {
@@ -579,21 +680,6 @@ function AIcycle() {
     console.log('AIcycle next round after', time/1000);
     setTimeout(AIcycle, time);
   }
-  /*
-  if ((step_before === ai_step_id) && (ai_step_id != ai_step_id_town_hall_decision) && 
-                                      (ai_step_id != ai_step_id_house_decision) && 
-                                      (ai_step_id != ai_step_id_storage_decision) && 
-                                      (ai_step_id != ai_step_id_farm_decision) && 
-                                      (ai_step_id != ai_step_id_sawmill_decision) && 
-                                      (ai_step_id != ai_step_id_mine_decision)) {
-    ai_step_id = 0;
-  }
-  
-  if (ai_step_id === 0) {
-    var time = getAITimeout();
-    console.log('AIcycle next round after', time/1000);
-    setTimeout(AIcycle, time);
-  }*/
 }
 
 function getAITimeout() {
@@ -732,6 +818,9 @@ function getCommandFromTxt(txt) {
             case command_trade_stone:
               ai_position_id = ai_position_id_trader_buy_stone;
               break;
+            case command_hire:
+              ai_position_id = ai_position_id_hire;
+              break;
             case command_recruit:
               ai_position_id = ai_position_id_recruit;//arr_command_stack.indexOf(command_wall) != -1 ? ai_position_id_walls : ai_position_id_barracks;
               break;
@@ -789,6 +878,12 @@ function parseCommandEx(command, txt) {
     case command_hire:
       result = true;
       break;
+    case command_war:
+      result = parseWarInfo(txt);
+      break;
+    case command_before_battle:
+      result = parseBeforeBattleInfo(txt);
+      break;
     default:
       if (ai_step_id === ai_step_id_market_complete) {
         result = parseTradeInfo(txt);
@@ -803,6 +898,8 @@ function parseCommandEx(command, txt) {
     console.error('Something goes wrong check log. Try refresh page');
     ai_step_id = 0;
   }
+  
+  return command;
 }
 
 function getMsgNode(node) {
@@ -858,7 +955,9 @@ function getAuthorByNode(node) {
 
 function parseCommandResult() {
   //console.log('parseCommandResult');
-  parseCommandResultDOM();
+  if (isRightUrl()) {
+    parseCommandResultDOM();
+  }
   setTimeout(parseCommandResult, 1000);
 }
 
@@ -890,8 +989,9 @@ function setMaxGold(max_gold) {
   setParamsToStorage();
 }
 
+var first_parsing = 0;
 function parseCommandResultDOM() {
-  var msg = $('div.im_history_message_wrap');
+  var msg = $('div.im_history_message_wrap:not([id])');
   //console.log('parseCommandResultDOM', msg);
   if (!msg) {
     return;
@@ -925,31 +1025,51 @@ function parseCommandResultDOM() {
         first_command = false;
         last_command = msg_text;
       }
-      if (msg_text === const_bot_start_command) {
+      var check_command = msg_text.toLowerCase();
+      if (check_command === const_bot_start_command) {
         with_command = with_command || (i === msg.length - 1);
+        if (first_parsing === 0) {
+          first_parsing = 1;
+        }
         break;
       }
-      if (msg_text.indexOf('build on') != -1) {
-        addIntoBuildList(msg_text.replace('build on ', ''));
-      } else if (msg_text.indexOf('build off') != -1) {
-        kickOutBuildList(msg_text.replace('build off ', ''));
-      } else if (msg_text.indexOf('start now') != -1) {
+      if (check_command.indexOf('build on') != -1) {
+        addIntoBuildList(check_command.replace('build on ', ''));
+      } else if (check_command.indexOf('build off') != -1) {
+        kickOutBuildList(check_command.replace('build off ', ''));
+      } else if (check_command.indexOf('start now') != -1) {
         while ((castle.task_list.length > 0) && (castle.task_list[0].type === 'wait')) {
           castle.task_list.shift();
         }
         with_command = true;
-      } else if (msg_text.indexOf('stop now') != -1) {
+      } else if (check_command.indexOf('stop now') != -1) {
         castle.task_list = [{type:'wait',until:time() + 100 * 24 * 60 * 60}];
         with_command = true;
-      } else if (msg_text.indexOf('clean task') != -1) {
+      } else if (check_command.indexOf('clean task') != -1) {
         castle.task_list = [];
         with_command = true;
       }
       continue;
     }
     
-    parseCommandEx('', msg_text);
+    var command = parseCommandEx('', msg_text);
+    if (command === command_before_battle) {
+      var btn = $('#msg_id_'+msg_id+' button.btn.reply_markup_button')[0];
+      $(btn).attr('id', 'btn_id_' + (++msg_id));
+      castle.opponent.btn_id = 'btn_id_' + msg_id;
+    }
+    
     with_command = true;
+  }
+  
+  if (first_parsing === 1) {
+    first_parsing = 2;
+    for(var i = msg.length - 1; i >= 0; --i) {
+      if (msg[i].id) {
+        continue;
+      }
+      $(msg[i]).attr('id', 'msg_id_' + (++msg_id));
+    }
   }
   
   if (with_command) {
@@ -1219,6 +1339,32 @@ function parseTownHallInfo(info) {
   return true;
 }
 
+function parseWarInfo(info) {
+  var arr = info.match(/<code>(.*?)<\/code>/g).map(function(val){
+     return val.replace(/<\/?code>/g,'');
+  });
+  
+  for (var i = 0, Ln = arr.length; i < Ln; ++i) {
+  }  
+  
+  return true;
+}
+
+function parseBeforeBattleInfo(info) {
+  var result = info.match(/<code>(.*?)<\/code>/g).map(function(val){
+     return val.replace(/<\/?code>/g,'');
+  });
+  
+  var title = result[0];
+  castle.opponent.name = title.indexOf('[') != -1 ? title.substr(title.indexOf(']') + 1) : title;
+  castle.opponent.alians = title.indexOf('[') != -1 ? title.substr(1, title.indexOf(']') - 1) : '';
+  castle.opponent.domen = result[1];
+  castle.opponent.territory = getInt(result[2]);
+  castle.opponent.karma = getInt(result[3]);
+  
+  return true;
+}
+
 function parseBuildingInfo(info) {
   var arr = info.split('<br>');
   for(var i = 0, Ln = arr.length; i < Ln; ++i) {
@@ -1330,6 +1476,8 @@ function sendCommand(command, parse_command) {
   setTimeout(sendCommandEx, timeout);
 }
 
+
+
 //// SYSTEM
 var message_text_id = 'mt_bsb_msg_text';
 var message_button_id = 'mt_bsb_msg_btn';
@@ -1378,6 +1526,11 @@ function getIntAndStatus(str) {
   return {value:getInt(str),status:str.indexOf('​✅') != -1};
 }
 
+function clickButton(id) {
+  var e = jQuery.Event("click");
+  jQuery('#' + id).trigger(e);
+}
+
 function sendCommandEx(message_txt) {
   if (!message_txt) {
     message_txt = last_send_command;
@@ -1392,9 +1545,7 @@ function sendCommandEx(message_txt) {
     $('#' + message_text_id).html(message_txt);
     var e = jQuery.Event( "keydown", { keyCode: 13 } );
     jQuery( ".composer_rich_textarea" ).trigger( e );
-    // setTimeout(parseCommandResult, (3 + getRandomInt(0, 5)) * 1000);
-    //fireEvent(document.getElementById(message_button_id), 'mousedown');
-    //fireEvent(document.getElementById(message_button_id), 'mouseup');
+    //clickButton(message_button_id);
   } else {
     last_send_command = message_txt;
     setTimeout(sendCommandEx, 10000);
@@ -1424,54 +1575,3 @@ function prepareField() {
 $(document).ready(function() {
     prepareField();
 });
-
-function fireEvent(node, eventName) {
-    // Make sure we use the ownerDocument from the provided node to avoid cross-window problems
-    var doc;
-    if (node.ownerDocument) {
-        doc = node.ownerDocument;
-    } else if (node.nodeType == 9){
-        // the node may be the document itself, nodeType 9 = DOCUMENT_NODE
-        doc = node;
-    } else {
-        throw new Error("Invalid node passed to fireEvent: " + node.id);
-    }
-
-     if (node.dispatchEvent) {
-        // Gecko-style approach (now the standard) takes more work
-        var eventClass = "";
-
-        // Different events have different event classes.
-        // If this switch statement can't map an eventName to an eventClass,
-        // the event firing is going to fail.
-        switch (eventName) {
-            case "click": // Dispatching of 'click' appears to not work correctly in Safari. Use 'mousedown' or 'mouseup' instead.
-            case "mousedown":
-            case "mouseup":
-                eventClass = "MouseEvents";
-                break;
-
-            case "focus":
-            case "change":
-            case "blur":
-            case "select":
-                eventClass = "HTMLEvents";
-                break;
-
-            default:
-                throw "fireEvent: Couldn't find an event class for event '" + eventName + "'.";
-                break;
-        }
-        var event = doc.createEvent(eventClass);
-        event.initEvent(eventName, true, true); // All events created as bubbling and cancelable.
-
-        event.synthetic = true; // allow detection of synthetic events
-        // The second parameter says go ahead with the default action
-        node.dispatchEvent(event, true);
-    } else  if (node.fireEvent) {
-        // IE-old school style, you can drop this if you don't need to support IE8 and lower
-        var event = doc.createEventObject();
-        event.synthetic = true; // allow detection of synthetic events
-        node.fireEvent("on" + eventName, event);
-    }
-};
