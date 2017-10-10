@@ -16,11 +16,13 @@ var command_trade_wood = 'Wood';
 var command_trade_stone = 'Stone';
 var command_storage = 'Storage';
 var command_upgrade = 'Upgrade';
+var command_repair = 'Repair';
 var command_back = 'Back';
 var command_farm = 'Farm';
 var command_sawmill = 'Sawmill';
 var command_mine = 'Mine';
 var command_hire = 'Hire';
+var command_recall = 'Recall';
 var command_recruit = 'Recruit';
 var command_barrack = 'Barracks';
 var command_wall = 'Walls';
@@ -31,37 +33,16 @@ var command_before_battle = 'Before battle';
 var command_search_anyone = 'Anyone';
 var command_attack = 'Attack';
 var command_after_battle = 'After battle';
+var command_under_attack = 'Under attack';
+var command_after_attack = 'After attack';
 
 var arr_command = [command_top_level,command_info,command_building,command_town_hall,
                    command_house,command_trade,command_trade_buy,command_trade_food,
                    command_trade_wood,command_trade_stone,command_storage,command_upgrade,
                    command_back, command_farm, command_sawmill, command_mine, command_hire, 
                    command_barrack, command_wall, command_workshop, command_trebuchet,command_recruit,
-                   command_war];
+                   command_war, command_repair];
 var arr_res_command = {food:command_trade_food,wood:command_trade_wood,stone:command_trade_stone};
-
-var ai_step_id_initial = 0;
-var ai_step_id_build_info = 1;
-var ai_step_id_town_hall_info = 2;
-var ai_step_id_town_hall_decision = 3;
-var ai_step_id_house_info = 4;
-var ai_step_id_house_decision = 5;
-var ai_step_id_storage_info = 6;
-var ai_step_id_storage_decision = 7;
-var ai_step_id_decision = 8;
-var ai_step_id_market = 9;
-var ai_step_id_market_buy = 10;
-var ai_step_id_market_buy_resource = 11;
-var ai_step_id_market_buy_count = 12;
-var ai_step_id_market_complete = 13;
-var ai_step_id_farm_info = 14;
-var ai_step_id_farm_decision = 15;
-var ai_step_id_sawmill_info = 16;
-var ai_step_id_sawmill_decision = 17;
-var ai_step_id_mine_info = 18;
-var ai_step_id_mine_decision = 19;
-var ai_step_id_hire = 20;
-var ai_step_id_hire_complete = 21;
 
 var ai_position_id_top = 1;
 var ai_position_id_buildings = 2;
@@ -86,20 +67,8 @@ var ai_position_id_war = 20;
 var ai_position_id_before_battle = 21;
 var ai_position_id_attack = 21;
 var ai_position_id_after_battle = 23;
-
-var ai_task_id_get_info = 0;
-var ai_task_id_buy_resources = 1;
-var ai_task_id_upgrade_town_hall = 2;
-var ai_task_id_upgrade_house = 3;
-var ai_task_id_upgrade_storage = 4;
-var ai_task_id_upgrade_wall = 5;
-var ai_task_id_upgrade_barrack = 6;
-var ai_task_id_upgrade_sawmill = 7;
-var ai_task_id_upgrade_mine = 8;
-var ai_task_id_upgrade_farm = 9;
-var ai_task_id_upgrade_trebuchet = 10;
-var ai_task_id_repair_wall = 12;
-var ai_task_id_recruit_army = 13;
+var ai_position_id_under_attack = 24;
+var ai_position_id_after_attack = 25;
 
 var TOWN = 0;
 var STORAGE = 1;
@@ -116,23 +85,28 @@ var arr_building = [
 {code:'storage',img:'🏚',command:command_storage,search_key:'🏚Storage',position_id:ai_position_id_storage,index:1,hire_position:ai_position_id_hire,hire_count:10},
 {code:'house',img:'🏘',command:command_house,search_key:'Houses',position_id:ai_position_id_houses,index:2,hire_position:'',hire_count:0},
 {code:'war',img:'',command:command_war,search_key:'Wins',position_id:ai_position_id_war,index:-1,hire_position:'',hire_count:0},
+{code:'find_money',img:'',command:command_trade_food,search_key:'find money',position_id:-1,index:-1,hire_position:'',hire_count:0},
+{code:'not_enough',img:'',command:command_trade_food,search_key:'not enough',position_id:-1,index:-1,hire_position:'',hire_count:0},
+{code:'joined',img:'',command:command_trade_food,search_key:'joined your',position_id:-1,index:-1,hire_position:'',hire_count:0},
 {code:'barracks',img:'🛡',command:command_barrack,search_key:'Barracks',position_id:ai_position_id_barracks,index:6,hire_position:ai_position_id_recruit,hire_count:40},
 {code:'walls',img:'🏰',command:command_wall,search_key:'Walls',position_id:ai_position_id_walls,index:7,hire_position:ai_position_id_recruit,hire_count:10},
 {code:'sawmill',img:'🌲',command:command_sawmill,search_key:'Sawmill',position_id:ai_position_id_sawmill,index:3,hire_position:ai_position_id_hire,hire_count:10},
 {code:'mine',img:'⛏️',command:command_mine,search_key:'Mine',position_id:ai_position_id_mine,index:4,hire_position:ai_position_id_hire,hire_count:10},
 {code:'farm',img:'🌻',command:command_farm,search_key:'Farm',position_id:ai_position_id_farm,index:5,hire_position:ai_position_id_hire,hire_count:10},
-{code:'trebuchet',img:'Trebuchet',command:command_trebuchet,search_key:'Farm',position_id:ai_position_id_trebuchet,index:5,hire_position:ai_position_id_hire,hire_count:1},
+{code:'workshop',img:'',command:command_workshop,search_key:'Workshop',position_id:ai_position_id_workshop,index:-1,hire_position:'',hire_count:0},
+{code:'trebuchet',img:'',command:command_trebuchet,search_key:'Trebuchet',position_id:ai_position_id_trebuchet,index:5,hire_position:ai_position_id_hire,hire_count:1},
 {code:'info',img:'',command:command_top_level,search_key:'Status',position_id:ai_position_id_top,index:-1,hire_position:'',hire_count:0},
 {code:'buildings',img:'',command:command_building,search_key:'Buildings',position_id:ai_position_id_buildings,index:-1,hire_position:'',hire_count:0},
 {code:'delivered',img:'',command:command_trade_food,search_key:'delivered to',position_id:-1,index:-1,hire_position:'',hire_count:0},
 {code:'buy',img:'',command:command_trade_buy,search_key:'Buy',position_id:ai_position_id_trader_buy,index:-1,hire_position:'',hire_count:0},
 {code:'trade',img:'',command:command_trade,search_key:'Resources',position_id:ai_position_id_trade,index:-1,hire_position:'',hire_count:0},
 {code:'choose_number',img:'',command:command_trade_food,search_key:'Choose number.',position_id:0,index:-1,hire_position:'',hire_count:0},
-{code:'workshop',img:'',command:command_workshop,search_key:'Workshop',position_id:ai_position_id_workshop,index:-1,hire_position:'',hire_count:0},
 {code:'before_battle',img:'',command:command_before_battle,search_key:'Our scouts found',position_id:ai_position_id_before_battle,index:-1,hire_position:'',hire_count:0},
-{code:'attack1',img:'',command:command_attack,search_key:'Siege has started',position_id:ai_position_id_attack,index:-1,hire_position:'',hire_count:0},
-{code:'attack2',img:'',command:command_attack,search_key:'not yet recovered from the last battle',position_id:ai_position_id_attack,index:-1,hire_position:'',hire_count:0},
-{code:'after_battle',img:'',command:command_after_battle,search_key:'The battle with',position_id:ai_position_id_after_battle,index:-1,hire_position:'',hire_count:0},
+{code:'attack1',img:'',command:command_attack,search_key:'Siege has started',position_id:-1,index:-1,hire_position:'',hire_count:0},
+{code:'attack2',img:'',command:command_attack,search_key:'not yet recovered from the last battle',position_id:-1,index:-1,hire_position:'',hire_count:0},
+{code:'after_battle',img:'',command:command_after_battle,search_key:'The battle with',position_id:-1,index:-1,hire_position:'',hire_count:0},
+{code:'under_attack',img:'',command:command_under_attack,search_key:'Your domain attacked',position_id:-1,index:-1,hire_position:'',hire_count:0},
+{code:'after_attack',img:'',command:command_after_attack,search_key:'Your domain attacked',position_id:-1,index:-1,hire_position:'',hire_count:0}
 ];
 
 var arr_upgrade = ['gold', 'wood', 'stone', 'food'];
@@ -143,7 +117,7 @@ var arr_numeric_val = ['army','food','gold','people','stone','territory','wood']
 
 var arr_buy_position = [ai_position_id_trader_buy_food, ai_position_id_trader_buy_wood, ai_position_id_trader_buy_stone];
 var arr_building_child = [ai_position_id_town_hall, ai_position_id_storage, ai_position_id_houses, ai_position_id_barracks, ai_position_id_walls, ai_position_id_sawmill, ai_position_id_mine, ai_position_id_farm];
-var arr_hire_pos = [ai_position_id_town_hall, ai_position_id_storage, ai_position_id_houses, ai_position_id_sawmill, ai_position_id_mine, ai_position_id_farm, ai_position_id_trebuchet];
+var arr_hire_pos = [ai_position_id_storage, ai_position_id_houses, ai_position_id_sawmill, ai_position_id_mine, ai_position_id_farm, ai_position_id_trebuchet];
 var arr_recruit_pos = [ai_position_id_barracks, ai_position_id_walls];
 var arr_buy_resource = {food:ai_position_id_trader_buy_food,wood:ai_position_id_trader_buy_wood,stone:ai_position_id_trader_buy_stone};
 var arr_buy_resource_lst = [ai_position_id_trader_buy_food,ai_position_id_trader_buy_wood,ai_position_id_trader_buy_stone];
@@ -156,10 +130,10 @@ var arr_workshop_menu = [ai_position_id_workshop, ai_position_id_trebuchet];
 console.log("bot there!!!");
 
 // VARIABLES
-var arr_command_stack = [], last_command, ai_step_id = ai_step_id_initial, ai_task_id = ai_task_id_get_info, ai_timeout = 0;
+var arr_command_stack = [], last_command, ai_timeout = 0;
 var ai_position_id = ai_position_id_top;
 var ai_position_parent_id = ai_position_id_top;
-var castle={under_attack:false,in_battle:false,war_delay:-1,position_id:-1,reserved_gold:0,task_list:[],food_settings:{min_day:10,buy_on:100},build_settings:{build_array:['town_hall', 'house']},opponent:{},enemy:{}};
+var castle={under_attack:false,in_battle:false,war_delay:-1,position_id:-1,reserved_gold:0,task_list:[],food_settings:{min_day:10,buy_on:100},build_settings:{build_array:['town_hall', 'house']},opponent:{},enemy:{},trebuchet:{}};
 
 //AI core
 
@@ -193,11 +167,11 @@ function getShortPathToDestination(new_position_id) {
   if ((ai_position_id === ai_position_id_top) && ((new_position_id === ai_position_id_hire) || (new_position_id === ai_position_id_recruit))) {
     return '';
   }
-  /*if ((ai_position_id === ai_position_id_hire) || (ai_position_id === ai_position_id_recruit)) {
-    return '';
-  }*/
   if (((arr_building_child.indexOf(new_position_id) != -1) && (arr_building_child.indexOf(ai_position_id) != -1)) ||
       ((arr_buy_resource_lst.indexOf(new_position_id) != -1) && (arr_buy_resource_lst.indexOf(ai_position_id) != -1))) {
+    return command_back;
+  }
+  if ((ai_position_id === ai_position_id_hire) || (ai_position_id === ai_position_id_recruit)) {
     return command_back;
   }
   if ((ai_position_id === ai_position_id_top) && (arr_building_child.indexOf(new_position_id) != -1)) {
@@ -340,6 +314,9 @@ function getShortPathToDestination(new_position_id) {
       }
       break;
     case ai_position_id_trebuchet:
+      if (ai_position_id === ai_position_id_top) {
+        return command_workshop;
+      }
       if (ai_position_id === ai_position_id_workshop) {
         return command_trebuchet;
       }
@@ -365,14 +342,23 @@ function getDecisionInfo() {
     console.log('getDecisionInfo', 'no building info');
     return getShortPathToDestination(ai_position_id_buildings);
   }
-  if (!castle.gold_daily) {
+  /*if (!castle.gold_daily) {
     console.log('getDecisionInfo', 'no town hall info');
     return getShortPathToDestination(ai_position_id_town_hall);
-  }
+  }*/
   if (!castle.storage.food_max) {
     console.log('getDecisionInfo', 'no storage info');
     return getShortPathToDestination(ai_position_id_storage);
   }
+  if (!castle.walls.hp_max) {
+    console.log('getDecisionInfo', 'no wall info');
+    return getShortPathToDestination(ai_position_id_walls);
+  }
+  if (!castle.trebuchet.level) {
+    console.log('getDecisionInfo', 'no trebuchet info');
+    return getShortPathToDestination(ai_position_id_trebuchet);
+  }
+  
   if ((castle.position_id >= 0) && (ai_position_id != castle.position_id)) {
     console.log('getDecisionInfo', 'goto position', castle.position_id, ai_position_id);
     return getShortPathToDestination(castle.position_id);
@@ -403,6 +389,7 @@ function foodDecision() {
 
 function getBuildCodeForUp() {
   castle.up_code = '';
+  castle.up_command = command_upgrade;
   var min_cost = -1;
   for (var i = 0, Ln = arr_building.length; i < Ln; ++i) {
     if (!castle[arr_building[i].code]) {
@@ -425,8 +412,23 @@ function getBuildCodeForUp() {
     castle.up_code = 'storage';
   }
   
+  if (castle.walls.hp_current < castle.walls.hp_max) {
+    castle.walls.level_up_gold = castle.walls.repair_gold;
+    castle.walls.level_up_wood = castle.walls.repair_wood;
+    castle.walls.level_up_stone = castle.walls.repair_stone;
+    castle.walls.up_full_cost = castle.walls.level_up_gold * 1 + castle.walls.level_up_wood * 2 + castle.walls.level_up_stone * 2;
+    castle.up_code = 'walls';
+    castle.up_command = command_repair;
+  }
+  
   return castle.up_code;
 }
+
+/*function repairDecision() {
+  if (castle.walls.hp_current < castle.walls.hp_max) {
+    castle.task_list.push({type:'command',position_id:ai_position_id_wall,command:command_repair});
+  }
+}*/
 
 function buildDecision() {
   var up_code = getBuildCodeForUp();
@@ -446,12 +448,12 @@ function buildDecision() {
     for (var i = 0, Ln = arr_building.length; i < Ln; ++i) {
       if (arr_building[i].code === up_code) {
         console.warn('before upgrade WFT');
-        castle.task_list.push({type:'command',position_id:arr_building[i].position_id,command:command_upgrade});
+        castle.task_list.push({type:'command',position_id:arr_building[i].position_id,command:castle.up_command});
         castle.task_list.push({type:'change_field',field:'gold',value:-castle[up_code].level_up_gold});
         castle.task_list.push({type:'change_field',field:'stone',value:-castle[up_code].level_up_stone});
         castle.task_list.push({type:'change_field',field:'wood',value:-castle[up_code].level_up_wood});
         if (arr_building[i].hire_count > 0) {
-          castle.task_list.push({type:'command',position_id:arr_building[i].hire_position,command:arr_building[i].hire_count});
+          castle.task_list.push({type:'command',parent_position_id:arr_building[i].position_id,position_id:arr_building[i].hire_position,command:arr_building[i].hire_count});
         }
       }
     }
@@ -459,18 +461,34 @@ function buildDecision() {
 }
 
 function hireDecision() {
-  var p = castle.house.level * 1;
+  var p = Math.min(castle.house.level * 1, castle.house.worker_current * 1);
+  var hr_level = (castle.house.worker_max - castle.house.worker_current) / castle.house.level;
   for (var i = 0, Ln = arr_building.length; i < Ln; ++i) {
-    if ((arr_building[i].hire_count > 0) && castle[arr_building[i].code] && (castle[arr_building[i].code].worker_current < castle[arr_building[i].code].worker_max)) {
+    if (!castle[arr_building[i].code]) {
+      continue;
+    }
+    if (castle[arr_building[i].code].worker_current >= castle[arr_building[i].code].worker_max) {
+      continue;
+    }
+    if (!(arr_building[i].hire_count > 0)) {
+      continue;
+    }
+    if ((hr_level < 3) || (arr_building[i].code === 'barracks') || (arr_building[i].code === 'walls')) {
       var need = Math.min(p, castle[arr_building[i].code].worker_max - castle[arr_building[i].code].worker_current);
-      castle.task_list.push({type:'command',position_id:arr_building[i].position_id,command:''});
-      castle.task_list.push({type:'command',position_id:arr_building[i].hire_position,command:need});
-      p -= need;
+      if (need > 0) {
+        castle.task_list.push({type:'command',parent_position_id:arr_building[i].position_id,position_id:arr_building[i].hire_position,command:need});
+        p -= need;
+      }
       if (p <= 0) {
         break;
       }
     }
   }
+  
+  if (hr_level > 4) {
+    
+  }
+  
 }
 
 function calcAITimeout() {
@@ -530,7 +548,11 @@ function collectResources() {
     return;
   }
   
-  if (!castle.farm || !castle.farm.produce || !castle.sawmill.produce || !castle.mine.produce || !castle.gold || !castle.gold_daily) {
+  if (!castle.gold_max) {
+    castle.gold_max = 10000000000000;
+  }
+  
+  if (!castle.farm || !castle.farm.produce || !castle.sawmill.produce || !castle.mine.produce || !castle.gold || !castle.gold_daily|| !castle.gold_max || !castle.storage.wood_max) {
     return;
   }
   if (castle.gold < 0) {
@@ -544,9 +566,21 @@ function collectResources() {
   }
   var food_coeff = castle.food > 0 ? 1 : 0.5;
   var food_plus = Math.round((castle.farm.produce - castle.food_daily) * game_day_count * food_coeff);
+  if (!food_plus) {
+    food_plus = 0;
+  }
   var gold_plus = Math.round(game_day_count * castle.gold_daily * food_coeff);
+  if (!gold_plus) {
+    gold_plus = 0;
+  }
   var wood_plus = Math.round(game_day_count * castle.sawmill.produce * food_coeff);
+  if (!wood_plus) {
+    wood_plus = 0;
+  }
   var stone_plus = Math.round(game_day_count * castle.mine.produce * food_coeff);
+  if (!stone_plus) {
+    stone_plus = 0;
+  }
   castle.gold = Math.min(castle.gold + gold_plus, castle.gold_max);
   castle.wood = Math.min(castle.wood + wood_plus, castle.storage.wood_max);
   castle.stone = Math.min(castle.stone + stone_plus, castle.storage.wood_max);
@@ -574,10 +608,7 @@ function taskDecision() {
   var exit = false;
   if (castle.task_list.length > 100) {
     castle.task_list = [];
-  }
-  if ((castle.task_list.length === 1) && (castle.task_list[0].type === 'command') && ((castle.task_list[0].position_id === ai_position_id_hire) || (castle.task_list[0].position_id === ai_position_id_recruit))) {
-    //castle.task_list = [];
-  }
+  }  
   
   while (!exit && (castle.task_list.length > 0)) {
     switch(castle.task_list[0].type) {
@@ -593,10 +624,21 @@ function taskDecision() {
         castle[task.field] += task.value;
         break;
       case 'command':
-        castle.position_id = castle.task_list[0].position_id;
-        if (castle.position_id === ai_position_id) {
+        var with_parent_pos = !!castle.task_list[0].parent_position_id;
+        if (with_parent_pos) {
+          castle.position_id = castle.task_list[0].parent_position_id;
+        } else {
+          castle.position_id = castle.task_list[0].position_id;
+        }
+        if (with_parent_pos && (castle.position_id === ai_position_id)) {
+          castle.position_id = castle.task_list[0].position_id;
+          castle.task_list[0].parent_position_id = 0
+        } else if (castle.position_id === ai_position_id) {
           castle.position_id = -1;
           var task = castle.task_list.shift();
+          if (task.build_code) {
+            task.command = castle[task.build_code].worker_max - castle[task.build_code].worker_current;
+          }
           if (task.command != '') {
             return task.command;
           }
@@ -644,9 +686,13 @@ function spentGold() {
 }
 
 function defenceDecision() {
-  if (castle.under_attack) {
-    castle.task_list = [];
+  if (!castle.under_attack) {
+    return;
   }
+  if ((castle.task_list.length > 0) && (castle.task_list[0].type === 'command') && castle.task_list[0].build_code && (castle.task_list[0].build_code === 'walls')) {
+    return;
+  }
+  castle.task_list = [{type:'command',parent_position_id:ai_position_id_walls,position_id:ai_position_id_recruit,command:0,build_code:'walls'}];
 }
 
 function attackDecision() {
@@ -655,6 +701,14 @@ function attackDecision() {
   }
   
   if (castle.in_battle) {
+    return;
+  }
+  
+  if (castle.barracks.worker_current < castle.barracks.worker_max) {
+    return;
+  }
+  
+  if (castle.walls.hp_current < castle.walls.hp_max) {
     return;
   }
   
@@ -668,7 +722,7 @@ function attackDecision() {
     return;
   }
   
-  if (!castle.opponent.btn_id || !((castle.opponent.karma >= 0) && (castle.opponent.karma <= 2) && (castle.opponent.territory <= castle.territory * 0.8) && (castle.opponent.territory >= castle.territory * 0.3))) {
+  if (!castle.opponent.btn_id || !((castle.opponent.karma >= 0) && (castle.opponent.karma <= 2) && (castle.opponent.territory <= castle.territory * 0.8) && (castle.opponent.territory >= castle.territory * 0))) {
     var new_position_id = arr_war_menu.indexOf(ai_position_id) != -1 ? ai_position_id : ai_position_id_war;
     castle.task_list.push({type:'command',position_id:new_position_id,command:command_search_anyone});
     return;
@@ -761,18 +815,10 @@ function AIcycle() {
     return;
   }
   
-  if (!ai_step_id) {
-    ai_step_id = ai_step_id_initial;
-  }
-  if (!ai_task_id) {
-    ai_task_id = ai_task_id_get_info;
-  }
-  
-  var step_before = ai_step_id;
   var command = '';
-  console.log('AIcycle before', command, ai_step_id, ai_task_id, castle.task_list);
+  console.log('AIcycle before', command, castle.task_list);
   command = getDecision();
-  console.log('AIcycle after', command, ai_step_id, ai_task_id, castle.task_list);
+  console.log('AIcycle after', command, castle.task_list);
   
   if (command != '') {
     sendCommand(command);
@@ -909,6 +955,7 @@ function getCommandFromTxt(txt) {
           // do nothing
           break;
         case 0:
+          ai_position_parent_id = ai_position_id;
           switch(last_command) {
             case command_trade_food:
               ai_position_id = ai_position_id_trader_buy_food;
@@ -923,17 +970,16 @@ function getCommandFromTxt(txt) {
               ai_position_id = ai_position_id_hire;
               break;
             case command_recruit:
-              ai_position_id = ai_position_id_recruit;//arr_command_stack.indexOf(command_wall) != -1 ? ai_position_id_walls : ai_position_id_barracks;
+              ai_position_id = ai_position_id_recruit;
               break;
           }
+          
           break;
         default:
           ai_position_id = arr_building[i].position_id;
+          ai_position_parent_id = ai_position_id;
           break;
       }
-      //if (arr_building[i].position_id != 0) {
-      //  ai_position_parent_id = ai_position_id;
-      //}
       console.log('getCommandFromTxt', arr_building[i].code, ai_position_id, arr_building[i].position_id, arr_building[i].search_key, last_command);
       return arr_building[i].command;
     }    
@@ -943,7 +989,7 @@ function getCommandFromTxt(txt) {
 
 function parseCommandEx(command, txt) {
   command = getCommandFromTxt(txt);
-  console.log('parseCommandEx', ai_step_id, command, txt);
+  console.log('parseCommandEx', command, txt);
   var result = false;
   switch(command) {
     case command_top_level:
@@ -967,6 +1013,7 @@ function parseCommandEx(command, txt) {
     case command_mine:
     case command_wall:
     case command_barrack:
+    case command_trebuchet:
       result = parseResourceBuildingInfo(txt, command);
       break;
     case command_trade:
@@ -977,6 +1024,8 @@ function parseCommandEx(command, txt) {
       result = parseTradeInfo(txt);
       break;
     case command_hire:
+    case command_recruit:
+    case command_workshop:
       result = true;
       break;
     case command_war:
@@ -991,19 +1040,18 @@ function parseCommandEx(command, txt) {
     case command_after_battle:
       result = parseAfterBattleInfo(txt);
       break;
+    case command_under_attack:
+      result = parseUnderAttackInfo(txt);
+      break;
+    case command_after_attack:
+      result = parseAfterAttackInfo(txt);
+      break;
     default:
-      if (ai_step_id === ai_step_id_market_complete) {
-        result = parseTradeInfo(txt);
-      }
-      /*if (ai_step_id === ai_step_id_hire_complete) {
-        result = parseTradeInfo(txt);
-      }*/
       break;
   }
-  console.log('parseCommandResult', command, result, ai_step_id, castle);
+  console.log('parseCommandResult', command, result, castle);
   if (!result) {
     console.error('Something goes wrong check log. Try refresh page');
-    ai_step_id = 0;
   }
   
   return command;
@@ -1212,10 +1260,26 @@ function parseTradeInfo(info) {
   return true;
 }
 
+function parseBuildingRow(code, arr) {
+  switch(getCode(arr[0])) {
+    case 'durability':
+      var ii = getIntInt(arr[1]);
+      castle[code].hp_current = ii[0];
+      castle[code].hp_max = ii[1];
+      break;
+    case 'gold':
+      var amount = getInt(arr[1]);
+      if (amount >= 0) {
+        castle.gold = amount;
+      }
+      break;
+  }
+}
+
 function parseResourceBuildingInfo(info, command) {
   var building_code = command.toLowerCase();
   var arr = info.split('<br>');
-  var upgrade_idx = -1, upgrade_section = false;
+  var upgrade_idx = -1, upgrade_section = false, repair_idx = -1, repair_section = false;
   for(var i = 0, Ln = arr.length; i < Ln; ++i) {
     var arr1 = getInfoArray(arr[i]);
     if (arr1.length == 0) {
@@ -1231,7 +1295,16 @@ function parseResourceBuildingInfo(info, command) {
         }
       }
     }
-    
+    if (repair_section || (arr1[0].trim() === 'Repair')) {
+      if (!repair_section) {
+        repair_section = true;
+        continue; 
+      } else {
+        if (++repair_idx >= 4) {
+          repair_section = false;
+        }
+      }
+    }
     switch(i) {
       case 0:
         /*if (arr1[0].indexOf('Storage') == -1) {
@@ -1255,6 +1328,12 @@ function parseResourceBuildingInfo(info, command) {
           var p = getIntAndStatus(arr1[0]);
           castle[building_code]['level_up_'+arr_upgrade[upgrade_idx]] = p.value;
           castle[building_code].up_status = castle[building_code].up_status && p.status;
+        } else if (repair_section) {
+          var p = getIntAndStatus(arr1[0]);
+          castle[building_code]['repair_'+arr_upgrade[repair_idx]] = p.value;
+          castle[building_code].repair_status = castle[building_code].repair_status && p.status;
+        } else {
+          parseBuildingRow(building_code, arr1);
         }
         break;
     }
@@ -1512,6 +1591,18 @@ function parseAfterBattleInfo(info) {
     castle.task_list = [{type:'command',position_id:ai_position_id_top,command:''}];
     return true;
   }
+}
+
+function parseUnderAttackInfo(info) {
+  castle.in_battle = true;
+  castle.under_attack = true;
+}
+
+function parseAfterAttackInfo(info) {
+  castle.in_battle = false;
+  castle.under_attack = false;
+  castle.war_delay = time() + 61 * 60;
+  castle.walls.hp_current = 0;
 }
 
 function parseBeforeBattleInfo(info) {
