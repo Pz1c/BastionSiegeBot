@@ -142,7 +142,7 @@ console.log("bot there!!!");
 var arr_command_stack = [], last_command, ai_timeout = 0;
 var ai_position_id = ai_position_id_top;
 var ai_position_parent_id = ai_position_id_top;
-var castle={under_attack:false,in_battle:false,war_delay:-1,position_id:-1,reserved_gold:0,task_list:[],food_settings:{min_day:10,buy_on:100},build_settings:{build_array:['town_hall', 'house']},opponent:{},enemy:{},trebuchet:{},under_attack_time:-1,in_battle_time:-1,target:''};
+var castle={stop:false,under_attack:false,in_battle:false,war_delay:-1,position_id:-1,reserved_gold:0,task_list:[],food_settings:{min_day:10,buy_on:100},build_settings:{build_array:['town_hall', 'house']},opponent:{},enemy:{},trebuchet:{},under_attack_time:-1,in_battle_time:-1,target:''};
 
 //AI core
 
@@ -572,9 +572,9 @@ function calcAITimeout() {
     war_time = min_time;
   }
   
-  var hire_time = (castle.house.worker_max - castle.house.worker_current + castle.barracks.worker_max - castle.barracks.worker_current + castle.farm.worker_max - castle.farm.worker_current + 
-    castle.mine.worker_max - castle.mine.worker_current + castle.sawmill.worker_max - castle.sawmill.worker_current + castle.walls.worker_max - castle.walls.worker_current + 
-    castle.trebuchet.worker_max - castle.trebuchet.worker_current) > 0 ? day_time : max_time;
+  var hire_time = (castle.storage.worker_max - castle.storage.worker_current + castle.barracks.worker_max - castle.barracks.worker_current +  castle.farm.worker_max - castle.farm.worker_current + 
+                   castle.mine.worker_max - castle.mine.worker_current + castle.sawmill.worker_max - castle.sawmill.worker_current + 
+                   castle.walls.worker_max - castle.walls.worker_current + castle.trebuchet.worker_max - castle.trebuchet.worker_current) > 0 ? day_time : max_time;
   
   console.log('timer check', 'task_time', task_time, 'food_time', food_time, 'wait_time', wait_time, 'war_time', war_time, 'hire_time', hire_time);
   ai_timeout = Math.max(0, Math.min(task_time, food_time, wait_time, war_time, hire_time));
@@ -864,6 +864,10 @@ function setParamsToStorage() {
 
 var last_ai_cycle_run = -1; 
 function AIcycle() {
+  if (castle.stop) {
+    return;
+  }
+  
   last_ai_cycle_run = time();
   if (first_run) {
     castle.task_list = [];
@@ -1348,6 +1352,17 @@ function parseCommandResultDOM() {
         castle.friend_user = '';
       } else if (check_command.indexOf('clean target') != -1) {
         castle.target = '';
+      } else if (check_command.indexOf('force stop') != -1) {
+        castle.stop = true;
+      } else if (check_command.indexOf('force start') != -1) {
+        castle.stop = false;
+      } else if (check_command.indexOf('show statistic') != -1) {
+        //castle.stop = true;
+      } else if (check_command.indexOf('run command') != -1) {
+        var cmd = check_command.replace('run command ', '').trim();
+        console.log('try eval', cmd);
+        eval(cmd);
+        
       }
       continue;
     }
