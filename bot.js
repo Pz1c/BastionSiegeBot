@@ -173,6 +173,9 @@ function getShortPathToDestination(new_position_id) {
   if (ai_position_id === -1) {
     return command_top_level;
   }
+  if ((ai_position_id === ai_position_id_hire) || (ai_position_id === ai_position_id_recruit) || (ai_position_id === ai_position_id_recall)) {
+    return command_back;
+  }
   if (new_position_id === ai_position_id) {
     return '';
   }
@@ -183,9 +186,7 @@ function getShortPathToDestination(new_position_id) {
       ((arr_buy_resource_lst.indexOf(new_position_id) != -1) && (arr_buy_resource_lst.indexOf(ai_position_id) != -1))) {
     return command_back;
   }
-  if ((ai_position_id === ai_position_id_hire) || (ai_position_id === ai_position_id_recruit) || (ai_position_id === ai_position_id_recall)) {
-    return command_back;
-  }
+  
   if ((ai_position_id === ai_position_id_top) && (arr_building_child.indexOf(new_position_id) != -1)) {
     return command_building;
   }
