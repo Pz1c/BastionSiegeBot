@@ -348,6 +348,9 @@ function getShortPathToDestination(new_position_id) {
       }
       break;
     case ai_position_id_before_battle:
+      if (ai_position_id === ai_position_id_top) {
+        return command_war;
+      }
       if (ai_position_id === ai_position_id_war) {
         return command_search_anyone;
       }
@@ -631,7 +634,7 @@ function calcAITimeout() {
   var arr_tt = ['task_time', 'food_time', 'wait_time', 'war_time', 'hire_time'];
   console.log('timer check', 'task_time', task_time, 'food_time', food_time, 'wait_time', wait_time, 'war_time', war_time, 'hire_time', hire_time);
   var arr_min_time = max_time;
-  var min_idx = 0;
+  var min_idx = 0, arr_min_idx = -1;
   for (var i = 0; i < 5; ++i) {
     if (arr_t[i] < arr_min_time) {
       arr_min_time = arr_t[i];
@@ -758,13 +761,13 @@ function spentGold() {
   var resources_to_buy = Math.floor((castle.gold - castle.barracks.worker_max * 10) / 4);
   
   if (castle.wood < castle[castle.up_code].level_up_wood) {
-    var wood_to_buy = Math.min(resources_to_buy, castle.storage.wood_max - castle.wood, castle[castle.up_code].level_up_wood - castle.wood);
+    var wood_to_buy = Math.min(resources_to_buy, castle.storage.wood_max - castle.wood - castle.sawmill.worker_current * 10, castle[castle.up_code].level_up_wood - castle.wood);
     if (wood_to_buy > 0) {
       castle.task_list.push({type:'command',position_id:arr_buy_resource['wood'],command:wood_to_buy,comment:'spent gold wood'});
     }
   }
   if (castle.stone < castle[castle.up_code].level_up_stone) {
-    var stone_to_buy = Math.min(resources_to_buy, castle.storage.stone_max - castle.stone, castle[castle.up_code].level_up_stone - castle.stone);
+    var stone_to_buy = Math.min(resources_to_buy, castle.storage.stone_max - castle.stone - castle.mine.worker_current * 10, castle[castle.up_code].level_up_stone - castle.stone);
     if (stone_to_buy > 0) {
       castle.task_list.push({type:'command',position_id:arr_buy_resource['stone'],command:stone_to_buy,comment:'spent gold stone'});
     }
@@ -817,11 +820,14 @@ function attackDecision() {
   console.warn('attackDecision', castle.opponent, norm, castle.friend_aliance, castle.friend_user, castle.target);
   if (castle.opponent.name && castle.enemy[castle.opponent.name]) {
     norm = (norm && (castle.enemy[castle.opponent.name].prize >= 90)) || (weak && (castle.enemy[castle.opponent.name].gold_total < castle.enemy[castle.opponent.name].gold_lose));
-    norm = norm && (castle.friend_aliance.indexOf(',' + castle.opponent.aliance) === -1) && (castle.friend_user.indexOf(',' + castle.opponent.name) === -1);
-    norm = norm || (weak && ((castle.target.indexOf(',' + castle.opponent.aliance) != -1) || (castle.target.indexOf(',' + castle.opponent.name) != -1)));
-    if (norm && (castle.aliance != '') && (castle.opponent.aliance = castle.aliance)) {
-      norm = false;
-    }
+  }
+  norm = norm && (castle.friend_user.indexOf(',' + castle.opponent.name.toLowerCase()) === -1);
+  if (norm && (castle.opponent.alliance != '')) {
+    norm = castle.friend_aliance.indexOf(',' + castle.opponent.alliance) === -1;
+  }
+  norm = norm || ((castle.opponent.btn_id != '') && weak && (((castle.opponent.alliance != '') && (castle.target.indexOf(',' + castle.opponent.alliance) != -1)) || ((castle.opponent.name != '') && (castle.target.indexOf(',' + castle.opponent.name) != -1))));
+  if (norm && (castle.aliance != '') && (castle.opponent.alliance === castle.aliance)) {
+    norm = false;
   }
   if (!norm) {
     console.log(castle.opponent);
@@ -1425,15 +1431,15 @@ function parseCommandResultDOM() {
       } else if (check_command.indexOf('force start') != -1) {
         castle.stop = false;
       } else if (check_command.indexOf('force1 start') != -1) {
-        if (castle.instance_id === 1) {
+        if (castle.instance_id == 1) {
           castle.stop = false;
         }
       } else if (check_command.indexOf('force2 start') != -1) {
-        if (castle.instance_id === 2) {
+        if (castle.instance_id == 2) {
           castle.stop = false;
         }
       } else if (check_command.indexOf('force3 start') != -1) {
-        if (castle.instance_id === 3) {
+        if (castle.instance_id == 3) {
           castle.stop = false;
         }
       } else if (check_command.indexOf('show statistic') != -1) {
@@ -1925,7 +1931,7 @@ function parseBeforeBattleInfo(info) {
   
   var title = parseOpponentTitle(result[0]);
   castle.opponent.name = title[0];
-  castle.opponent.alians = title[1];
+  castle.opponent.alliance = title[1];
   castle.opponent.domen = result[1];
   castle.opponent.territory = getInt(result[2]);
   castle.opponent.karma = getInt(result[3], true);
