@@ -599,7 +599,7 @@ function hireDecision() {
 
 var next_ai_run = -1;
 function calcAITimeout() {
-  var min_time = 0.017, max_time = 5, day_time = 1.1;
+  var min_time = 0.017, max_time = 3, day_time = 1.1;
   var up_code = castle.up_code;
   var task_time = castle.task_list.length > 0 ? min_time : max_time;
   if (task_time === min_time) {
@@ -926,7 +926,7 @@ function setParamsToStorage() {
   localStorage.setItem('castle', JSON.stringify(castle));
 }
 
-var last_ai_cycle_run = -1; 
+var last_ai_cycle_run = time();
 function AIcycle() {
   if (castle.stop) {
     return;
@@ -1349,7 +1349,7 @@ function parseCommandResultDOM() {
   var msg = $('div.im_history_message_wrap:not([id])');
   //console.log('parseCommandResultDOM', msg);
   if (!msg) {
-    if ((time() > next_ai_run + 120) || ((last_ai_cycle_run > 0) && ((time() - last_ai_cycle_run) / 60 > 20))) {
+    if ((time() > next_ai_run + 120) || ((time() - last_ai_cycle_run) / 60 > 5)) {
       castle.task_list = [{type:'command',position_id:ai_position_id_top,command:command_building,comment:'parseCommandResultDOM'}];
       AIcycle();
     }
