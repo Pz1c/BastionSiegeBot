@@ -734,7 +734,10 @@ function taskDecision() {
           castle.position_id = -1;
           var task = castle.task_list.shift();
           if (task.build_code) {
-            task.command = castle[task.build_code].worker_max - castle[task.build_code].worker_current;
+            task.command = castle[task.build_code].worker_max * 1 - castle[task.build_code].worker_current * 1;
+            if (task.command <= 0) {
+              task.command = '';
+            }
           }
           if (task.command != '') {
             console.log('taskDecision', task.command, task.comment);
@@ -823,7 +826,7 @@ function attackDecision() {
     var weak = (castle.opponent.karma <= 1) && (castle.opponent.territory <= castle.territory * 0.7);
     weak = weak || ((castle.opponent.karma === 2) && (castle.opponent.territory <= castle.territory * 0.2));
     weak = weak || ((castle.opponent.karma === 3) && (castle.opponent.territory <= castle.territory * 0.05));
-    norm = castle.opponent.btn_id && (castle.opponent.karma >= 0) && weak;// && (castle.opponent.territory >= castle.territory * 0);
+    norm = (castle.opponent.karma >= 0) && weak;// && (castle.opponent.territory >= castle.territory * 0);
     console.warn('attackDecision', castle.opponent, norm, castle.friend_aliance, castle.friend_user, castle.target);
     if (castle.opponent.name && castle.enemy[castle.opponent.name]) {
       norm = (norm && (castle.enemy[castle.opponent.name].prize >= 90)) || (weak && (castle.enemy[castle.opponent.name].gold_total < castle.enemy[castle.opponent.name].gold_lose));
@@ -832,7 +835,7 @@ function attackDecision() {
     if (norm && (castle.opponent.alliance != '')) {
       norm = castle.friend_aliance.indexOf(',' + castle.opponent.alliance) === -1;
     }
-    norm = norm || ((castle.opponent.btn_id != '') && weak && (((castle.opponent.alliance != '') && (castle.target.indexOf(',' + castle.opponent.alliance) != -1)) || ((castle.opponent.name != '') && (castle.target.indexOf(',' + castle.opponent.name) != -1))));
+    norm = norm || (weak && (((castle.opponent.alliance != '') && (castle.target.indexOf(',' + castle.opponent.alliance) != -1)) || ((castle.opponent.name != '') && (castle.target.indexOf(',' + castle.opponent.name) != -1))));
     if (norm && (castle.aliance != '') && (castle.opponent.alliance === castle.aliance)) {
       norm = false;
     }
@@ -854,8 +857,11 @@ function attackDecision() {
     return;
   }
   
-  clickButton(castle.opponent.btn_id);
-  castle.war_delay = time() + 1 * 60;
+  if (clickButton(castle.opponent.btn_id)) {
+    castle.war_delay = time() + 15;
+  } else {
+    castle.opponent.btn_id = '';
+  }
 }
 
 function fixData() {
@@ -966,14 +972,15 @@ function AIcycle() {
     castle.task_list = [];
     first_run = false;
     getParamsFromStorage();
+    castle.opponent.btn_id = '';
     setTimeout(prepareListener, 10000);
     if (castle.send_start_command) {
       castle.send_start_command = false;
       sendCommand(const_bot_start_command);
-      return;
     } else {
       first_parsing = 1;
     }
+    return;
   }
   
   var command = '';
@@ -1388,6 +1395,10 @@ function parseCommandResultDOM() {
     return;
   }
   
+  if (first_parsing < 2) {
+    castle.opponent.btn_id = '';
+  }
+  
   var with_command = false;
   var first_command = true;
   for(var i = 0, Ln = msg.length; i < Ln; ++i) {
@@ -1408,11 +1419,11 @@ function parseCommandResultDOM() {
     
     $(msg[i]).attr('id', 'msg_id_' + (++msg_id));
     var check_command = msg_text.toLowerCase();
-    if ((first_parsing === 0) && (check_command != const_bot_start_command)) {
-      continue;
-    }
+    //if ((first_parsing === 0) && (check_command != const_bot_start_command)) {
+    //  continue;
+    //}
     
-    if (author != const_bot_name) {
+    if ((first_parsing > 1) && (author != const_bot_name)) {
       last_command = msg_text;
       
       if (check_command === const_bot_start_command) {
@@ -1498,7 +1509,7 @@ function parseCommandResultDOM() {
     with_command = true;
   }
   
-  if (first_parsing === 1) {
+  if (first_parsing < 2) {
     first_parsing = 2;
     castle.war_delay = -2;
     for(var i = msg.length - 1; i >= 0; --i) {
@@ -1840,7 +1851,7 @@ function getDelayInSec(txt) {
   }
   var res = t * k;
   //console.warn('getDelayInSec', txt, res);
-  return res;//Math.min(res, 180);
+  return Math.min(res, 180);
 }
 
 function parseWarInfo(info) {
@@ -1871,6 +1882,7 @@ function parseWarInfo(info) {
       delay_found = true;
       var d = getDelayInSec(arr[arr.length - i]);
       castle.war_delay = time() + getDelayInSec(arr[arr.length - i]);
+      break;
     }
   }
   if (!delay_found) {
@@ -1934,16 +1946,14 @@ function parseAfterBattleInfo(info) {
   }
   castle.task_list = [{type:'command',position_id:ai_position_id_top,command:command_building,comment:'after battle'}];
   
-  var idx1 = info.indexOf('The battle with');
-  var idx2 = info.indexOf('complete');
-  if ((idx1 != -1) && (idx2 != -1) && (idx1 < idx2)) {
-    if (!castle.under_attack) {
-      castle.war_delay = time() + 1 * 60;
-    }
-    castle.in_battle = false;
-    castle.under_attack = false;
-    
+  if (castle.under_attack) {
+    castle.war_delay = -2;
+  } else {
+    castle.war_delay = time() + 1 * 60;
   }
+  castle.in_battle = false;
+  castle.under_attack = false;
+  castle.opponent.btn_id = '';
   
   return true;
 }
@@ -2162,7 +2172,9 @@ function getIntAndStatus(str) {
 
 function clickButton(id) {
   var e = jQuery.Event("click");
+  var exists = jQuery('#' + id);
   jQuery('#' + id).trigger(e);
+  return exists.length > 0;
 }
 
 function writeMessage(txt) {
