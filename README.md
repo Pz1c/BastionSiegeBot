@@ -19,6 +19,7 @@ repair wall after battle
 find suitable attack target and attack him
 
 # command list
+smart build on/off start/stop smart building
 build on  walls,barracks,house,town_hall,sawmill,mine,farm,trebuchet - add object to build list
 build off - remove object from build list
 start now - start AI cycle
@@ -28,3 +29,4 @@ force stop - stop AI cycle - no action from AI
 force start - start AI cycle (cancel force stop)
 stop attack - stop auto attack (before aliance attack)
 start attack - start auto atack
+show settings - show current settings

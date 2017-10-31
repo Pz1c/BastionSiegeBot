@@ -1,4 +1,4 @@
-// sys constant
+// sys constants
 var const_bot_start_command = 'start working';
 var const_bot_name = 'Bastion Siege';
 var first_run = true;
@@ -32,6 +32,7 @@ var command_trebuchet = 'Trebuchet';
 var command_war = 'War';
 var command_before_battle = 'Before battle';
 var command_search_anyone = 'Anyone';
+var command_search_suitable = 'Suitable';
 var command_attack = 'Attack';
 var command_after_battle = 'After battle';
 var command_under_attack = 'Under attack';
@@ -143,7 +144,25 @@ console.log("bot there!!!");
 
 // VARIABLES
 var arr_command_stack = [], last_command;
-var castle={send_start_command:true,stop:false,under_attack:false,in_battle:false,war_delay:-1,position_id:-1,reserved_gold:0,task_list:[],food_settings:{min_day:10,buy_on:100},build_settings:{build_array:['town_hall', 'house']},opponent:{},enemy:{},trebuchet:{},under_attack_time:-1,in_battle_time:-1,target:'',human_update:-1};
+var castle=
+  {send_start_command:true,
+   stop:false,
+   under_attack:false,
+   in_battle:false,
+   war_delay:-1,
+   position_id:-1,
+   reserved_gold:0,
+   task_list:[],
+   settings:{food_min_day:10,food_buy_on:100,build_array:['town_hall', 'house'],smart_build:false},
+   //food_settings:{min_day:10,buy_on:100},
+   //build_settings:{build_array:['town_hall', 'house']},
+   opponent:{},
+   enemy:{},
+   trebuchet:{},
+   under_attack_time:-1,
+   in_battle_time:-1,
+   target:'',
+   human_update:-1};
 
 //AI core
 
@@ -381,7 +400,7 @@ function getDecisionInfo() {
     console.log('getDecisionInfo', 'no storage info');
     return getShortPathToDestination(ai_position_id_storage);
   }
-  if (!castle.walls.hp_max) {
+  if (!castle.walls || !castle.walls.hp_max) {
     console.log('getDecisionInfo', 'no wall info');
     return getShortPathToDestination(ai_position_id_walls);
   }
@@ -404,10 +423,10 @@ function getDecisionInfo() {
 
 function getFoodDecision() {
   castle.daily_food_real = castle.food_daily - Math.min(castle.farm.produce, castle.storage.worker_max); 
-  castle.need_buy_food = ((castle.daily_food_real > 0) && (castle.food / castle.daily_food_real <= castle.food_settings.min_day)) || (castle.food < castle.barracks.worker_max * 2);
+  castle.need_buy_food = ((castle.daily_food_real > 0) && (castle.food / castle.daily_food_real <= castle.settings.food_min_day)) || (castle.food < castle.barracks.worker_max * 2);
   console.log('getFoodDecision', castle);
   if (castle.need_buy_food) {
-    var need_food = castle.daily_food_real * castle.food_settings.buy_on + castle.barracks.worker_max * castle.food_settings.buy_on / 10;
+    var need_food = castle.daily_food_real * castle.settings.food_buy_on + castle.barracks.worker_max * castle.settings.food_buy_on / 10;
     var food_by_gold = Math.floor((castle.gold - castle.reserved_gold) / 2);
     console.log('getDecision food', castle.farm.produce, castle.food_daily, castle.food, castle.storage.food_max, castle.barracks.worker_max * 3, castle.gold, castle.reserved_gold);
     console.log('getDecision food', need_food, castle.storage.food_max, Math.floor((castle.gold - castle.reserved_gold) / 2));
@@ -441,7 +460,7 @@ function checkIsPossibleToUpgrade(code, check_storage) {
   return result;
 }
 
-function getBuildCodeForUp() {
+function getBuildCodeForUp(allow_support_building) {
   castle.up_code = '';
   castle.up_command = command_upgrade;
   
@@ -449,19 +468,21 @@ function getBuildCodeForUp() {
   var max_priority = -1;
   //var total_money = castle.gold * 1 + castle.wood * 2 + castle.stone * 2;
   
-  for (var i = 0, Ln = arr_building.length; i < Ln; ++i) {
-    if (!castle[arr_building[i].code]) {
-      continue;
-    }
-    if (castle.build_settings.build_array.indexOf(arr_building[i].code) === -1) {
-      console.log('getBuildCodeForUp', 'not found in build array', arr_building[i].code);
-      continue;
-    }
-    
-    console.log('getBuildCodeForUp', arr_building[i].code, arr_building[i].build_priority, max_priority, castle[arr_building[i].code].up_full_cost);
-    if (checkIsPossibleToUpgrade(arr_building[i].code, true) && (arr_building[i].build_priority > max_priority)) {
-      max_priority = arr_building[i].build_priority;
-      castle.up_code = arr_building[i].code;
+  if (castle.settings.smart_build) {
+    for (var i = 0, Ln = arr_building.length; i < Ln; ++i) {
+      if (!castle[arr_building[i].code]) {
+        continue;
+      }
+      if (castle.settings.build_array.indexOf(arr_building[i].code) === -1) {
+        console.log('getBuildCodeForUp', 'not found in build array', arr_building[i].code);
+        continue;
+      }
+      
+      console.log('getBuildCodeForUp', arr_building[i].code, arr_building[i].build_priority, max_priority, castle[arr_building[i].code].up_full_cost);
+      if (checkIsPossibleToUpgrade(arr_building[i].code, true) && (arr_building[i].build_priority > max_priority)) {
+        max_priority = arr_building[i].build_priority;
+        castle.up_code = arr_building[i].code;
+      }
     }
   }
   
@@ -470,9 +491,13 @@ function getBuildCodeForUp() {
       if (!castle[arr_building[i].code]) {
         continue;
       }
-      if (castle.build_settings.build_array.indexOf(arr_building[i].code) === -1) {
-        console.log('getBuildCodeForUp', 'not found in build array', arr_building[i].code);
-        continue;
+      if (castle.settings.build_array.indexOf(arr_building[i].code) === -1) {
+        if (allow_support_building && (arr_support_buildings.indexOf(arr_building[i].code) != -1)) {
+          console.log('getBuildCodeForUp', 'allow_support_building = true', arr_building[i].code);
+        } else {
+          console.log('getBuildCodeForUp', 'not found in build array', arr_building[i].code);
+          continue;
+        }
       }
       
       console.log('getBuildCodeForUp', arr_building[i].code, min_cost, castle[arr_building[i].code].up_full_cost);
@@ -502,7 +527,13 @@ function getBuildCodeForUp() {
 
 function buildDecision() {
   prepareBuildingParameters();
-  var up_code = getBuildCodeForUp();
+  var up_code = getBuildCodeForUp(false);
+  if ((up_code === 'storage') && (castle.settings.smart_build)) {
+    var need_human = castle.barracks.worker_max - castle.house.worker_max - castle.storage.worker_max - castle.sawmill.worker_max - castle.mine.worker_max - castle.farm.worker_max;
+    if (need_human > 10) {    
+      up_code = getBuildCodeForUp(true);
+    }
+  }
   castle.up_code = up_code;
   
   console.log('getDecision', up_code, castle[up_code].up_full_cost, castle.gold, castle.reserved_gold);
@@ -824,8 +855,8 @@ function attackDecision() {
     }
   } else {
     var weak = (castle.opponent.karma <= 1) && (castle.opponent.territory <= castle.territory * 0.7);
-    weak = weak || ((castle.opponent.karma === 2) && (castle.opponent.territory <= castle.territory * 0.2));
-    weak = weak || ((castle.opponent.karma === 3) && (castle.opponent.territory <= castle.territory * 0.05));
+    weak = weak || ((castle.opponent.karma === 2) && (castle.opponent.territory <= castle.territory * 0.2) && (castle.opponent.territory <= 10000));
+    weak = weak || ((castle.opponent.karma === 3) && (castle.opponent.territory <= castle.territory * 0.05) && (castle.opponent.territory <= 2000));
     norm = (castle.opponent.karma >= 0) && weak;// && (castle.opponent.territory >= castle.territory * 0);
     console.warn('attackDecision', castle.opponent, norm, castle.friend_aliance, castle.friend_user, castle.target);
     if (castle.opponent.name && castle.enemy[castle.opponent.name]) {
@@ -956,6 +987,12 @@ function getParamsFromStorage() {
   if (castle.next_ai_run) {
     castle.next_ai_run = -1;
   }
+  if (!castle.settings) {
+    castle.settings = {food_min_day:castle.food_settings.min_day,food_buy_on:castle.food_settings.buy_on,build_array:castle.build_settings.build_array,smart_build:false};
+  }
+  // settings:{food_min_day:10,food_buy_on:100,build_array:['town_hall', 'house'],smart_build:true},
+  // food_settings:{min_day:10,buy_on:100},
+  // build_settings:{build_array:['town_hall', 'house']},
 }
 
 function setParamsToStorage() {
@@ -1319,20 +1356,20 @@ function parseCommandResult() {
 }
 
 function addIntoBuildList(code) {
-  console.log('addIntoBuildList', code, castle.build_settings.build_array);
-  if (castle.build_settings.build_array.indexOf(code) === -1) {
-    castle.build_settings.build_array.push(code);
+  console.log('addIntoBuildList', code, castle.settings.build_array);
+  if (castle.settings.build_array.indexOf(code) === -1) {
+    castle.settings.build_array.push(code);
   }
-  console.log('addIntoBuildList', code, castle.build_settings.build_array);
+  console.log('addIntoBuildList', code, castle.settings.build_array);
 }
 
 function kickOutBuildList(code) {
-  console.log('kickOutBuildList', code, castle.build_settings.build_array);
-  var idx = castle.build_settings.build_array.indexOf(code);
+  console.log('kickOutBuildList', code, castle.settings.build_array);
+  var idx = castle.settings.build_array.indexOf(code);
   if (idx != -1) {
-    castle.build_settings.build_array.splice(idx, 1);
+    castle.settings.build_array.splice(idx, 1);
   }
-  console.log('kickOutBuildList', code, castle.build_settings.build_array);
+  console.log('kickOutBuildList', code, castle.settings.build_array);
 }
 
 // <span class="emoji  emoji-spritesheet-1" style="background-position: -306px -18px;" title="dragon">:dragon:</span>
@@ -1376,11 +1413,7 @@ function removeFriendUser(code) {
 }
 
 function setMaxGold(max_gold) {
-  /*console.log('setMaxGold', max_gold);
-  if (castle.build_settings.build_array.indexOf(code) === -1) {
-    castle.build_settings.build_array.push(code);
-  }
-  console.log('addIntoBuildList', code, castle.build_settings.build_array);*/
+  
 }
 
 var first_parsing = 0;
@@ -1433,7 +1466,11 @@ function parseCommandResultDOM() {
         }
         break;
       }
-      if (check_command.indexOf('build on') != -1) {
+      if (check_command.indexOf('smart build on') != -1) {
+        castle.settings.smart_build = true;
+      } else if (check_command.indexOf('smart build off') != -1) {
+        castle.settings.smart_build = false;
+      } else if (check_command.indexOf('build on') != -1) {
         addIntoBuildList(check_command.replace('build on ', ''));
       } else if (check_command.indexOf('build off') != -1) {
         kickOutBuildList(check_command.replace('build off ', ''));
@@ -1495,6 +1532,10 @@ function parseCommandResultDOM() {
         var cmd = check_command.replace('run command ', '').trim();
         console.log('try show', cmd);
         writeMessage(castle[cmd]);
+      } else if (check_command.indexOf('show settings') != -1) {
+        var cmd = check_command.replace('run command ', '').trim();
+        console.log('try show', cmd);
+        sendCommandEx(JSON.stringify(castle.settings));
       }
       continue;
     }
