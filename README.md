@@ -9,6 +9,7 @@ load unpacked extencion - chose folder with unpacked project<br>
 reload tab with web.telegram<br>
 !! chat with BastionSiegeBot should be active<br>
 !! BastionSiegeBot should use English interface<br>
+!! you should have barracks, walls, trebuchet
 
 # Bot can:
 upgrade buildings from build list<br>
