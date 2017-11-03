@@ -983,8 +983,8 @@ function patrolDecision() {
   }
   
   if (castle.patrol_time < patrol_settings.cost_time) {
-    castle.patrol_time = Math.min(300, castle.patrol_time + 10);
-    castle.patrol_delay = time() + 600;
+    castle.patrol_time = 300;
+    castle.patrol_delay = time() + castle.EOD;
     return;
   }  
   
@@ -1111,6 +1111,9 @@ function getParamsFromStorage() {
   }
   if (!castle.patrol_delay) {
     castle.patrol_delay = -1;
+  }
+  if (!castle.EOD) {
+    castle.EOD = 0;
   }
 }
 
@@ -1745,6 +1748,12 @@ function parseBuildingRow(code, arr) {
       var p = getInt(arr[1]);
       if ((p >= 0) && castle.barracks && castle.barracks.worker_current) {
         castle.barracks.worker_current = p;
+      }
+      break;
+    case 'time':
+      var p = getStr(arr[1]).split(':');
+      if (p.length === 3) {
+        castle.EOD = 24 * 60 * 60 - getInt(p[0]) * 60 * 60 - getInt(p[1]) * 60 - getInt(p[2]);
       }
       break;
   }

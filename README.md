@@ -18,6 +18,7 @@ recruit workers, warriors and archers<br>
 recruit archers under attack<br>
 repair wall after battle<br>
 find suitable attack target and attack him<br>
+go to patrol<br>
 
 # command list
 smart build on/off start/stop smart building<br>
