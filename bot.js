@@ -146,16 +146,16 @@ var arr_buy_resource = {food:ai_position_id_trader_buy_food,wood:ai_position_id_
 var arr_buy_resource_lst = [ai_position_id_trader_buy_food,ai_position_id_trader_buy_wood,ai_position_id_trader_buy_stone];
 var arr_build_menu = [ai_position_id_town_hall, ai_position_id_storage, ai_position_id_houses, ai_position_id_barracks, ai_position_id_walls, ai_position_id_sawmill, ai_position_id_mine, ai_position_id_farm, ai_position_id_buildings];
 var arr_trade_menu = [ai_position_id_trader_buy_food, ai_position_id_trader_buy_wood, ai_position_id_trader_buy_stone, ai_position_id_trader_buy, ai_position_id_trade];
-var arr_war_menu = [ai_position_id_war,ai_position_id_after_battle, ai_position_id_before_battle, ai_position_id_attack];
+var arr_war_menu = [ai_position_id_war,ai_position_id_after_battle, ai_position_id_before_battle, ai_position_id_attack, ai_position_id_patrol];
 var arr_workshop_menu = [ai_position_id_workshop, ai_position_id_trebuchet];
 var arr_hire_command_pos = [ai_position_id_recruit, ai_position_id_hire, ai_position_id_recall];
 
 var arr_patrol_settings = [
-{comand:command_patrol_legendary,cost_time:300,delay:9000,cost_warrior:100000,cost_food:1000000,cost_gold:5000000},
-{comand:command_patrol_epic,cost_time:300,delay:900,cost_warrior:10000,cost_food:100000,cost_gold:500000},
-{comand:command_patrol_long,cost_time:300,delay:300,cost_warrior:1500,cost_food:15000,cost_gold:75000},
-{comand:command_patrol_medium,cost_time:60,delay:60,cost_warrior:500,cost_food:5000,cost_gold:25000},
-{comand:command_patrol_fast,cost_time:10,delay:10,cost_warrior:100,cost_food:1000,cost_gold:5000}
+{command:command_patrol_legendary,cost_time:300,delay:9000,cost_warrior:100000,cost_food:1000000,cost_gold:5000000},
+{command:command_patrol_epic,cost_time:300,delay:900,cost_warrior:10000,cost_food:100000,cost_gold:500000},
+{command:command_patrol_long,cost_time:300,delay:300,cost_warrior:1500,cost_food:15000,cost_gold:75000},
+{command:command_patrol_medium,cost_time:60,delay:60,cost_warrior:500,cost_food:5000,cost_gold:25000},
+{command:command_patrol_fast,cost_time:10,delay:10,cost_warrior:100,cost_food:1000,cost_gold:5000}
 ];
 
 console.log("bot there!!!");
@@ -383,6 +383,9 @@ function getShortPathToDestination(new_position_id) {
     case ai_position_id_war:
       if (castle.ai_position_id === ai_position_id_top) {
         return command_war;
+      }
+      if (castle.ai_position_id === ai_position_id_patrol) {
+        return command_back;
       }
       if (arr_war_menu.indexOf(castle.ai_position_id) != -1) {
         castle.ai_position_id = new_position_id;
@@ -984,7 +987,9 @@ function patrolDecision() {
   
   if (castle.patrol_time < patrol_settings.cost_time) {
     castle.patrol_time = 300;
-    castle.patrol_delay = time() + castle.EOD;
+    if (castle.EOD > 0) {
+      castle.patrol_delay = castle.EOD;
+    }
     return;
   }  
   
@@ -1113,7 +1118,7 @@ function getParamsFromStorage() {
     castle.patrol_delay = -1;
   }
   if (!castle.EOD) {
-    castle.EOD = 0;
+    castle.EOD = -1;
   }
 }
 
@@ -1753,7 +1758,7 @@ function parseBuildingRow(code, arr) {
     case 'time':
       var p = getStr(arr[1]).split(':');
       if (p.length === 3) {
-        castle.EOD = 24 * 60 * 60 - getInt(p[0]) * 60 * 60 - getInt(p[1]) * 60 - getInt(p[2]);
+        castle.EOD = time() + 24 * 60 * 60 - getInt(p[0]) * 60 * 60 - getInt(p[1]) * 60 - getInt(p[2]);
       }
       break;
   }
