@@ -47,6 +47,7 @@ var command_patrol_medium = 'Medium';
 var command_patrol_long = 'Long';
 var command_patrol_epic = 'Epic';
 var command_patrol_legendary = 'Legendary';
+var command_patrol_start = 'Patrol started';
 
 var arr_command = [command_top_level,command_info,command_building,command_town_hall,
                    command_house,command_trade,command_trade_buy,command_trade_food,
@@ -113,7 +114,7 @@ var arr_building = [
 {code:'under_attack',img:'',command:command_under_attack,search_key:'Your domain attacked',position_id:-1,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
 {code:'town_hall',img:'🏤',command:command_town_hall,search_key:'Town hall',position_id:ai_position_id_town_hall,index:TOWN,hire_position:'',hire_count:0,recall:false,build_priority:10},
 {code:'war',img:'',command:command_war,search_key:'Wins',position_id:ai_position_id_war,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
-{code:'patrol_start',img:'',command:command_no_parse,search_key:'Patrol hit the road.',position_id:-1,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
+{code:'patrol_start',img:'',command:command_patrol_start,search_key:'Patrol hit the road.',position_id:-1,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
 {code:'patrol_wait',img:'',command:command_no_parse,search_key:'Wait until the end previous patrol.',position_id:-1,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
 {code:'patrol',img:'',command:command_patrol,search_key:'Patrol',position_id:ai_position_id_patrol,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
 {code:'barracks',img:'🛡',command:command_barrack,search_key:'Barracks',position_id:ai_position_id_barracks,index:BARRACKS,hire_position:ai_position_id_recruit,hire_count:40,recall:false,build_priority:8},
@@ -586,7 +587,7 @@ function buildDecision() {
         castle.task_list.push({type:'change_field',field:'stone',value:-castle[up_code].level_up_stone});
         castle.task_list.push({type:'change_field',field:'wood',value:-castle[up_code].level_up_wood});
         if (arr_building[i].hire_count > 0) {
-          castle.task_list.push({type:'command',parent_position_id:arr_building[i].position_id,position_id:arr_building[i].hire_position,command:arr_building[i].hire_count});
+          castle.task_list.push({type:'command',parent_position_id:arr_building[i].position_id,position_id:arr_building[i].hire_position,build_code:up_code,command:arr_building[i].hire_count});
         }
       }
     }
@@ -598,6 +599,10 @@ function hireDecision() {
     return;
   }
   castle.task_list = [];
+  
+  if (castle.under_attack && (castle.under_attack_status === 0)) {
+    console.log('under attack first round');
+  }
   
   if ((castle.house.worker_max - castle.house.worker_current > 0) && (castle.human_update > 0) && ((time() - castle.human_update)/60 > 5)) {
     castle.task_list = [{type:'command',position_id:ai_position_id_top,command:command_building,comment:'HR Refresh'}];
@@ -620,7 +625,7 @@ function hireDecision() {
       continue;
     }
     
-    if (castle.in_battle && (arr_building[i].code === 'barracks')) {
+    if (!castle.under_attack && castle.in_battle && (arr_building[i].code === 'barracks')) {
       continue;
     }
     
@@ -628,7 +633,7 @@ function hireDecision() {
     if (full_house || war_code) {
       var need = Math.min(war_code ? castle.house.worker_current : p, castle[arr_building[i].code].worker_max - castle[arr_building[i].code].worker_current);
       if (need > 0) {
-        castle.task_list.push({type:'command',parent_position_id:arr_building[i].position_id,position_id:arr_building[i].hire_position,command:need,comment:'hireDecision'});
+        castle.task_list.push({type:'command',parent_position_id:arr_building[i].position_id,position_id:arr_building[i].hire_position,command:need,build_code:arr_building[i].code,comment:'hireDecision'});
         p -= need;
       }
       if (p <= 0) {
@@ -661,7 +666,7 @@ function hireDecision() {
       var hn = Math.min(house_need, castle[arr_building[i].code].worker_current);
       if (hn > 0) {
         house_need -= hn;
-        castle.task_list.push({type:'command',parent_position_id:arr_building[i].position_id,position_id:ai_position_id_recall,command:hn,comment:'hireDecisionRecall'});
+        castle.task_list.push({type:'command',parent_position_id:arr_building[i].position_id,position_id:ai_position_id_recall,command:hn,build_code:arr_building[i].code,comment:'hireDecisionRecall'});
       }
       continue;
     }
@@ -804,14 +809,20 @@ function taskDecision() {
           castle.position_id = castle.task_list[0].position_id;
           castle.task_list[0].parent_position_id = 0
         } else if (castle.position_id === castle.ai_position_id) {
-          castle.position_id = -1;
+          
           var task = castle.task_list.shift();
           if (task.build_code) {
-            task.command = castle[task.build_code].worker_max * 1 - castle[task.build_code].worker_current * 1;
+            if (castle.position_id === ai_position_id_recall) {
+              task.command = Math.min(task.command * 1, castle.house.worker_max * 1 - castle.house.worker_current * 1, castle[task.build_code].worker_max * 1 - castle[task.build_code].worker_current * 1);
+            } else if ((castle.position_id === ai_position_id_hire) || (castle.position_id === ai_position_id_recruit)) {
+              task.command = Math.min(task.command * 1, castle.house.worker_current * 1, castle[task.build_code].worker_max * 1 - castle[task.build_code].worker_current * 1);
+            }
+            // task.command = castle[task.build_code].worker_max * 1 - castle[task.build_code].worker_current * 1;
             if (task.command <= 0) {
               task.command = '';
             }
           }
+          castle.position_id = -1;
           if (task.command != '') {
             console.log('taskDecision', task.command, task.comment);
             return task.command;
@@ -866,10 +877,13 @@ function defenceDecision() {
   if (!castle.under_attack) {
     return;
   }
+  if (castle.under_attack_status === 0) {
+    return;
+  }
   if ((castle.task_list.length > 0) && (castle.task_list[0].type === 'command') && castle.task_list[0].build_code && (castle.task_list[0].build_code === 'walls')) {
     return;
   }
-  castle.task_list = [{type:'command',parent_position_id:ai_position_id_walls,position_id:ai_position_id_recruit,command:0,build_code:'walls',comment:'defence'}];
+  castle.task_list = [{type:'command',parent_position_id:ai_position_id_walls,position_id:ai_position_id_recruit,command:castle.walls.worker_max,build_code:'walls',comment:'defence'}];
 }
 
 function attackDecision() {
@@ -913,8 +927,8 @@ function attackDecision() {
     if (norm && (castle.opponent.alliance != '')) {
       norm = castle.friend_aliance.indexOf(',' + castle.opponent.alliance) === -1;
     }
-    norm = norm || (weak && (((castle.opponent.alliance != '') && (castle.target.indexOf(',' + castle.opponent.alliance) != -1)) || ((castle.opponent.name != '') && (castle.target.indexOf(',' + castle.opponent.name) != -1))));
-    if (norm && (castle.aliance != '') && (castle.opponent.alliance === castle.aliance)) {
+    norm = norm || (weak && (((castle.opponent.alliance != '') && (castle.target.indexOf(',' + castle.opponent.alliance) != -1)) || ((castle.opponent.name != '') && (castle.target.toLowerCase().indexOf(',' + castle.opponent.name.toLowerCase()) != -1))));
+    if (norm && (castle.alliance != '') && (castle.opponent.alliance === castle.alliance)) {
       norm = false;
     }
   }
@@ -963,50 +977,49 @@ function patrolDecision() {
     return;
   }
   
+  if (!(castle.patrol_time >= 0)) {
+    castle.patrol_time = 300;
+  }
+  
   if (hasTask()) {
     return;
   }
   castle.task_list = [];
   
-  var patrol_settings = false;
+  castle.patrol_settings = false;
   for (var i = 0, Ln = arr_patrol_settings.length; i < Ln; ++i) {
     if (castle.barracks.worker_max >= arr_patrol_settings[i].cost_warrior) {
-      patrol_settings = arr_patrol_settings[i];
+      castle.patrol_settings = arr_patrol_settings[i];
       break;
     }
   }
   
-  if (!patrol_settings) {
+  if (!castle.patrol_settings) {
     castle.patrol_delay = time() + 600;
     return;
   }
   
-  if (!(castle.patrol_time >= 0)) {
+  if ((castle.patrol_time < castle.patrol_settings.cost_time) && (castle.EOD > 0)) {
     castle.patrol_time = 300;
-  }
-  
-  if (castle.patrol_time < patrol_settings.cost_time) {
-    castle.patrol_time = 300;
-    if (castle.EOD > 0) {
-      castle.patrol_delay = castle.EOD;
-    }
+    castle.patrol_delay = castle.EOD;
     return;
   }  
   
-  if (castle.food < patrol_settings.cost_food) {
-    if (castle.gold - patrol_settings.cost_gold - patrol_settings.cost_food * 2 > 0) {
-      castle.task_list.push({type:'command',position_id:ai_position_id_trader_buy_food,command:patrol_settings.cost_food - castle.food + patrol_settings.cost_food * 0.2,comment:'patrolDecision'});
+  if (castle.food < castle.patrol_settings.cost_food) {
+    if (castle.gold - castle.patrol_settings.cost_gold - castle.patrol_settings.cost_food * 2 > 0) {
+      castle.task_list.push({type:'command',position_id:ai_position_id_trader_buy_food,command:castle.patrol_settings.cost_food - castle.food + castle.patrol_settings.cost_food * 0.2,comment:'patrolDecision'});
     } else {
       castle.patrol_delay = time() + 180;
     }
     return;
   }
   
-  if (castle.gold >= patrol_settings.cost_gold) {
-    castle.task_list.push({type:'command',position_id:ai_position_id_patrol,command:patrol_settings.command,comment:'patrolDecision'});
-    castle.patrol_delay = time() + patrol_settings.delay * 60;
+  if (castle.gold >= castle.patrol_settings.cost_gold) {
+    castle.task_list.push({type:'command',position_id:ai_position_id_patrol,command:castle.patrol_settings.command,comment:'patrolDecision'});
+    castle.task_list.push({type:'command',position_id:ai_position_id_top,command:'',comment:'patrolDecision'});
+    castle.patrol_delay = time() + 60;
   } else {
-    castle.patrol_delay = time() + patrol_settings.delay * 180;
+    castle.patrol_delay = time() + 180;
   }  
 }
 
@@ -1391,6 +1404,9 @@ function parseCommandEx(command, txt) {
       case command_patrol:
         result = parsePatrolInfo(txt);
         break;
+      case command_patrol_start:
+        result = parsePatrolStarted(txt);
+        break;
       case command_no_parse:
         result = true;
         break;
@@ -1504,12 +1520,22 @@ function kickOutBuildList(code) {
 
 // <span class="emoji  emoji-spritesheet-1" style="background-position: -306px -18px;" title="dragon">:dragon:</span>
 function cleanUpCode(code) {
+  var res;
   if (code.indexOf('<span') === -1) {
-    return code;
+    res = code;
+  } else {
+    var idx1 = code.indexOf('>');
+    var idx2 = code.indexOf('</span>');
+    res = code.substr(idx1 + 1, idx2 - idx1 - 1);
   }
-  var idx1 = code.indexOf('>');
-  var idx2 = code.indexOf('</span>');
-  return code.substr(idx1 + 1, idx2 - idx1 - 1);
+  if (res.indexOf('from ') === 0) {
+    var user_name = res.replace('from ', '');
+    if (castle.enemy[user_name] && castle.enemy[user_name].alians) {
+      res = castle.enemy[user_name].alians;
+    }
+  }
+  
+  return res;
 }
 
 function addTarget(code) {
@@ -1601,9 +1627,9 @@ function parseCommandResultDOM() {
       } else if (check_command.indexOf('smart build off') != -1) {
         castle.settings.smart_build = false;
       } else if (check_command.indexOf('build on') != -1) {
-        addIntoBuildList(check_command.replace('build on ', ''));
+        addIntoBuildList(msg_text.replace(/build on /ig, ''));
       } else if (check_command.indexOf('build off') != -1) {
-        kickOutBuildList(check_command.replace('build off ', ''));
+        kickOutBuildList(msg_text.replace(/build off /ig, ''));
       } else if (check_command.indexOf('start now') != -1) {
         while ((castle.task_list.length > 0) && (castle.task_list[0].type === 'wait')) {
           castle.task_list.shift();
@@ -1616,17 +1642,17 @@ function parseCommandResultDOM() {
         castle.task_list = [];
         with_command = true;
       } else if (check_command.indexOf('add target') != -1) {
-        addTarget(cleanUpCode(check_command.replace('add target ', '').trim()));
+        addTarget(cleanUpCode(msg_text.replace(/add target /ig, '').trim()));
       } else if (check_command.indexOf('remove target') != -1) {
-        removeTarget(cleanUpCode(check_command.replace('remove target ', '').trim()));
+        removeTarget(cleanUpCode(msg_text.replace(/remove target /ig, '').trim()));
       } else if (check_command.indexOf('add friend aliance') != -1) {
-        addFriendAliance(cleanUpCode(check_command.replace('add friend aliance ', '').trim()));
+        addFriendAliance(cleanUpCode(msg_text.replace(/add friend aliance /ig, '').trim()));
       } else if (check_command.indexOf('remove friend aliance') != -1) {
-        removeFriendAliance(cleanUpCode(check_command.replace('remove friend aliance ', '').trim()));
+        removeFriendAliance(cleanUpCode(msg_text.replace(/remove friend aliance /ig, '').trim()));
       } else if (check_command.indexOf('add friend user') != -1) {
-        addFriendUser(cleanUpCode(check_command.replace('add friend user ', '').trim()));
+        addFriendUser(cleanUpCode(msg_text.replace(/add friend user /ig, '').trim()));
       } else if (check_command.indexOf('remove friend user') != -1) {
-        removeFriendUser(cleanUpCode(check_command.replace('remove friend user ', '').trim()));
+        removeFriendUser(cleanUpCode(msg_text.replace(/remove friend user /ig, '').trim()));
       } else if (check_command.indexOf('clean friend') != -1) {
         castle.friend_aliance = '';
         castle.friend_user = '';
@@ -1758,7 +1784,7 @@ function parseBuildingRow(code, arr) {
     case 'time':
       var p = getStr(arr[1]).split(':');
       if (p.length === 3) {
-        castle.EOD = time() + 24 * 60 * 60 - getInt(p[0]) * 60 * 60 - getInt(p[1]) * 60 - getInt(p[2]);
+        castle.EOD = time() + 24 * 60 * 60 - getInt(p[0]) * 60 * 60 - getInt(p[1]) * 60 - getInt(p[2]) + 60;
       }
       break;
   }
@@ -2142,6 +2168,7 @@ function parseUnderAttackInfo(info) {
   castle.under_attack = true;
   castle.under_attack_status = 0;
   castle.under_attack_time = time();
+  castle.in_battle_time = time();
   castle.barracks.worker_current = 0;
   castle.task_list = [];
   return true;
@@ -2178,8 +2205,16 @@ function parsePatrolInfo(info) {
       castle.patrol_time = t * 1;
     }
   }
+  if (castle.patrol_time > 0) {
+    castle.patrol_delay = -1;
+  }
   
   return true;
+}
+
+function parsePatrolStarted(into) {
+  castle.patrol_time -= castle.patrol_settings.cost_time;
+  castle.patrol_delay = time() + castle.patrol_settings.delay * 60;  
 }
 
 function parseOpponentTitle(title) {
@@ -2257,7 +2292,7 @@ function parseBaseInfo(info) {
       case 0:
         var t = parseOpponentTitle(arr1[0]);
         castle.user_name = t[0];
-        castle.aliance = t[1];
+        castle.alliance = t[1];
         break;
       case 1:
         castle.name = getStr(arr1[0]);
