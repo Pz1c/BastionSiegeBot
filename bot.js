@@ -927,7 +927,9 @@ function attackDecision() {
     if (norm && (castle.opponent.alliance != '')) {
       norm = castle.friend_aliance.indexOf(',' + castle.opponent.alliance) === -1;
     }
-    norm = norm || (weak && (((castle.opponent.alliance != '') && (castle.target.indexOf(',' + castle.opponent.alliance) != -1)) || ((castle.opponent.name != '') && (castle.target.toLowerCase().indexOf(',' + castle.opponent.name.toLowerCase()) != -1))));
+    if (castle.settings.vendetta) {
+      norm = norm || (weak && (((castle.opponent.alliance != '') && (castle.target.indexOf(',' + castle.opponent.alliance) != -1)) || ((castle.opponent.name != '') && (castle.target.toLowerCase().indexOf(',' + castle.opponent.name.toLowerCase()) != -1))));
+    }
     if (norm && (castle.alliance != '') && (castle.opponent.alliance === castle.alliance)) {
       norm = false;
     }
@@ -1119,7 +1121,7 @@ function getParamsFromStorage() {
     castle.next_ai_run = -1;
   }
   if (!castle.settings) {
-    castle.settings = {food_min_day:castle.food_settings.min_day,food_buy_on:castle.food_settings.buy_on,build_array:castle.build_settings.build_array,smart_build:false};
+    castle.settings = {food_min_day:castle.food_settings.min_day,food_buy_on:castle.food_settings.buy_on,build_array:castle.build_settings.build_array,smart_build:false,vendetta:false};
   }
   if (!castle.search_count) {
     castle.search_count = 0;
@@ -1132,6 +1134,9 @@ function getParamsFromStorage() {
   }
   if (!castle.EOD) {
     castle.EOD = -1;
+  }
+  if (!castle.settings.vendetta) {
+    castle.settings.vendetta = false;
   }
 }
 
@@ -1622,7 +1627,11 @@ function parseCommandResultDOM() {
         }
         break;
       }
-      if (check_command.indexOf('smart build on') != -1) {
+      if (check_command.indexOf('vendetta on') != -1) {
+        castle.settings.vendetta = true;
+      } else if (check_command.indexOf('vendetta off') != -1) {
+        castle.settings.vendetta = false;
+      } if (check_command.indexOf('smart build on') != -1) {
         castle.settings.smart_build = true;
       } else if (check_command.indexOf('smart build off') != -1) {
         castle.settings.smart_build = false;
@@ -1784,7 +1793,7 @@ function parseBuildingRow(code, arr) {
     case 'time':
       var p = getStr(arr[1]).split(':');
       if (p.length === 3) {
-        castle.EOD = time() + 24 * 60 * 60 - getInt(p[0]) * 60 * 60 - getInt(p[1]) * 60 - getInt(p[2]) + 60;
+        castle.EOD = time() + 24 * 60 * 60 - getInt(p[0]) * 60 * 60 - getInt(p[1]) * 60 - getInt(p[2]) + 600;
       }
       break;
   }
@@ -2196,17 +2205,22 @@ function parsePatrolInfo(info) {
   
   console.log('parsePatrolInfo', result);
   
+  var patrol_in_prgress = false;
   for (var i = 0, Ln = result.length; i < Ln; ++i) {
     if (result[i].indexOf('Before the end of the patrol') != -1) {
       castle.patrol_delay = time() + getDelayInSec(result[i + 1], true);
+      patrol_in_prgress = true;
     } else if (result[i].indexOf('Exist time') != -1) {
       var s = getInt('1' + result[i + 1]) + '';
       var t = s.substr(1, s.length - 4);
       castle.patrol_time = t * 1;
     }
   }
-  if (castle.patrol_time > 0) {
+  if (!patrol_in_prgress && (castle.patrol_time > 0)) {
     castle.patrol_delay = -1;
+  }
+  if (castle.patrol_time === 0) {
+    castle.patrol_delay = castle.EOD;
   }
   
   return true;
