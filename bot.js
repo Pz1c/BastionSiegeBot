@@ -813,7 +813,7 @@ function taskDecision() {
           var task = castle.task_list.shift();
           if (task.build_code) {
             if (castle.position_id === ai_position_id_recall) {
-              task.command = Math.min(task.command * 1, castle.house.worker_max * 1 - castle.house.worker_current * 1, castle[task.build_code].worker_max * 1 - castle[task.build_code].worker_current * 1);
+              task.command = Math.min(task.command * 1, castle.house.worker_max * 1 - castle.house.worker_current * 1, castle[task.build_code].worker_current * 1);
             } else if ((castle.position_id === ai_position_id_hire) || (castle.position_id === ai_position_id_recruit)) {
               task.command = Math.min(task.command * 1, castle.house.worker_current * 1, castle[task.build_code].worker_max * 1 - castle[task.build_code].worker_current * 1);
             }
