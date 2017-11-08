@@ -961,6 +961,19 @@ function attackDecision() {
   }
 }
 
+function timeConverter(UNIX_timestamp){
+  var a = new Date(UNIX_timestamp * 1000);
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var year = a.getFullYear();
+  var month = months[a.getMonth()];
+  var date = a.getDate();
+  var hour = a.getHours();
+  var min = a.getMinutes();
+  var sec = a.getSeconds();
+  var time = date + ' ' + month + ' ' + year + ' ' + hour + ':' + min + ':' + sec ;
+  return time;
+}
+
 function patrolDecision() {
   if (castle.in_battle) {
     return;
@@ -1002,6 +1015,7 @@ function patrolDecision() {
   }
   
   if ((castle.patrol_time < castle.patrol_settings.cost_time) && (castle.EOD > 0)) {
+    sendCommandEx('SET EOD=' + timeConverter(castle.EOD));
     castle.patrol_time = 300;
     castle.patrol_delay = castle.EOD;
     return;
@@ -2360,7 +2374,7 @@ function sendCommand(command, parse_command) {
       break;
   }
   
-  var timeout = getRandomInt(2000, 5000);
+  var timeout = getRandomInt(1000, 3000);
   console.log('sendCommand', command, last_command, arr_command_stack, timeout);
   last_send_command = command;
   //last_message_txt
@@ -2449,7 +2463,7 @@ function sendCommandEx(message_txt) {
     //clickButton(message_button_id);
   } else {
     last_send_command = message_txt;
-    setTimeout(sendCommandEx, 10000);
+    setTimeout(sendCommandEx, 5000);
   }
 }
 
