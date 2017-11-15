@@ -1,4 +1,4 @@
-// sys constants
+// SYS CONSTANT
 var const_bot_start_command = 'start working';
 var const_bot_name = 'Bastion Siege';
 var first_run = true;
