@@ -648,7 +648,7 @@ function hireDecision() {
           worker_max = new_need;
         }
       }
-      var need = Math.min(war_code ? castle.house.worker_current : p, castle[worker_max - castle[arr_building[i].code].worker_current);
+      var need = Math.min((war_code ? castle.house.worker_current : p), worker_max - castle[arr_building[i].code].worker_current);
       if (need > 0) {
         castle.task_list.push({type:'command',parent_position_id:arr_building[i].position_id,position_id:arr_building[i].hire_position,command:need,build_code:arr_building[i].code,comment:'hireDecision'});
         p -= need;
