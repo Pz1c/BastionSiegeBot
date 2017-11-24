@@ -32,3 +32,10 @@ force start - start AI cycle (cancel force stop)<br>
 stop attack - stop auto attack (before aliance attack)<br>
 start attack - start auto atack<br>
 show settings - show current settings<br>
+
+# add remove friend/target
+add/remove friend user [username] - add/remove username into/from friend list (no attack) example "add friend user Galbarad"
+add/remove friend aliance from [username] - add/remove aliance into/from friend list example "add friend aliance from Galbarad" (telegram has problem with emoji so you can add friend aliance only after attacking at list one member)
+add/remove target [username]/from [username] - add/remove user/aliance into/from target list
+example "add target Galbarad" - add user with nik Galabrad to your target list (not recomended ;)
+example "add target from Galbarad" - add aliance where user with nik Galabrad is a member to your target list

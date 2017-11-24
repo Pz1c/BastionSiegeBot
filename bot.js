@@ -48,6 +48,8 @@ var command_patrol_long = 'Long';
 var command_patrol_epic = 'Epic';
 var command_patrol_legendary = 'Legendary';
 var command_patrol_start = 'Patrol started';
+var command_war_in_progress = 'war in progress';
+var command_treasure = 'treasure';
 
 var arr_command = [command_top_level,command_info,command_building,command_town_hall,
                    command_house,command_trade,command_trade_buy,command_trade_food,
@@ -106,6 +108,8 @@ var arr_building = [
 {code:'invalid_building_name',img:'',command:command_no_parse,search_key:'Invalid building name',position_id:ai_position_id_buildings,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
 {code:'joined',img:'',command:command_joined,search_key:'joined',position_id:-1,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
 {code:'delivered',img:'',command:command_trade_food,search_key:'delivered to',position_id:-1,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
+{code:'treasure',img:'',command:command_treasure,search_key:'treasure',position_id:-1,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
+{code:'war_in_progress',img:'',command:command_war_in_progress,search_key:'war in progres',position_id:-1,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
 {code:'choose_number',img:'',command:command_trade_food,search_key:'Choose number.',position_id:0,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
 {code:'before_battle',img:'',command:command_before_battle,search_key:'Our scouts found',position_id:ai_position_id_before_battle,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
 {code:'cant_attack',img:'',command:command_attack,search_key:'can not attack',position_id:-1,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
@@ -1443,6 +1447,12 @@ function parseCommandEx(command, txt) {
       case command_patrol_start:
         result = parsePatrolStarted(txt);
         break;
+      case command_war_in_progress:
+        result = parseWarInProgress(txt);
+        break;
+      case command_treasure:
+        result = parseTreasure(txt);
+        break;
       case command_no_parse:
         result = true;
         break;
@@ -2258,9 +2268,22 @@ function parsePatrolInfo(info) {
   return true;
 }
 
-function parsePatrolStarted(into) {
+function parsePatrolStarted(info) {
   castle.patrol_time -= castle.patrol_settings.cost_time;
   castle.patrol_delay = time() + castle.patrol_settings.delay * 60;  
+  
+  return true;
+}
+
+function parseWarInProgress(info) {
+  castle.in_battle = true;
+  
+  return true;
+}
+
+function parseTreasure(info) {
+  castle.task_list = [{type:'command',position_id:ai_position_id_top,command:command_building,comment:'after patrol'}];
+  return true;
 }
 
 function parseOpponentTitle(title) {
