@@ -937,13 +937,13 @@ function attackDecision() {
       return;
     }
   } else {
-    var weak = (castle.opponent.karma <= 1) && (castle.opponent.territory <= castle.territory * 0.5);
+    var weak = (castle.opponent.karma <= 1);// && (castle.opponent.territory <= castle.territory * 0.5);
     weak = weak || ((castle.opponent.karma === 2) && (castle.opponent.territory <= castle.territory * 0.2) && (castle.opponent.territory < 10000));
     weak = weak || ((castle.opponent.karma === 3) && (castle.opponent.territory <= castle.territory * 0.05) && (castle.opponent.territory <= 2000));
     norm = (castle.opponent.karma >= 0) && weak;// && (castle.opponent.territory >= castle.territory * 0);
     console.warn('attackDecision', castle.opponent, norm, castle.friend_aliance, castle.friend_user, castle.target);
     if (castle.opponent.name && castle.enemy[castle.opponent.name]) {
-      norm = (norm && (castle.enemy[castle.opponent.name].prize >= 90)) || (weak && (castle.enemy[castle.opponent.name].gold_total < castle.enemy[castle.opponent.name].gold_lose));
+      norm = (norm && (castle.enemy[castle.opponent.name].prize >= castle.settings.gold_min_prize)) || (weak && (castle.enemy[castle.opponent.name].gold_total < castle.enemy[castle.opponent.name].gold_lose));
     }
     norm = norm && (castle.friend_user.indexOf(',' + castle.opponent.name.toLowerCase()) === -1);
     if (norm && (castle.opponent.alliance != '')) {
@@ -958,7 +958,7 @@ function attackDecision() {
   }
   
   if (norm) {
-    castle.search_count = 0;
+    //castle.search_count = 0;
   } else {
     console.log(castle.opponent);
     castle.opponent.btn_id = '';
@@ -980,6 +980,7 @@ function attackDecision() {
     castle.war_delay = time() + 15;
   } else {
     castle.opponent.btn_id = '';
+    //castle.search_count = 0;
   }
 }
 
@@ -1172,6 +1173,9 @@ function getParamsFromStorage() {
   }
   if (!castle.settings.vendetta) {
     castle.settings.vendetta = false;
+  }
+  if (!castle.settings.gold_min_prize) {
+    castle.settings.gold_min_prize = 100;
   }
 }
 
@@ -1668,7 +1672,9 @@ function parseCommandResultDOM() {
         }
         break;
       }
-      if (check_command.indexOf('vendetta on') != -1) {
+      if (check_command.indexOf('set min prize') != -1) {
+        castle.settings.gold_min_prize = getInt(check_command);
+      } else if (check_command.indexOf('vendetta on') != -1) {
         castle.settings.vendetta = true;
       } else if (check_command.indexOf('vendetta off') != -1) {
         castle.settings.vendetta = false;
@@ -2152,6 +2158,7 @@ function parseAttackInfo(info) {
     castle.in_battle = true;
     castle.in_battle_time = time();
     castle.barracks.worker_current = 0;
+    castle.search_count = 0;
   }
   if (info.indexOf('yet recovered from the last battle') != -1) {
     castle.war_delay = time() + getDelayInSec(info);

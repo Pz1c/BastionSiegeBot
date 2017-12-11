@@ -31,6 +31,7 @@ force stop - stop AI cycle - no action from AI<br>
 force start - start AI cycle (cancel force stop)<br>
 stop attack - stop auto attack (before aliance attack)<br>
 start attack - start auto atack<br>
+set min prize xxx - ex set min prize 100 - mean that bot try to find opponnent to attack with award att least 100 gold per warrior
 show settings - show current settings<br>
 
 # add remove friend/target
@@ -39,3 +40,6 @@ add/remove friend aliance from [username] - add/remove aliance into/from friend 
 add/remove target [username]/from [username] - add/remove user/aliance into/from target list
 example "add target Galbarad" - add user with nik Galabrad to your target list (not recomended ;)
 example "add target from Galbarad" - add aliance where user with nik Galabrad is a member to your target list
+
+#spec commands
+vendetta on/off - on off vendetta mode ;) bot try to find AFK with gold, but in case found enemy attack him (in usual mode bot attack enemy only in case prize will be equal to greated 100 gold for each warrior)
