@@ -31,7 +31,7 @@ force stop - stop AI cycle - no action from AI<br>
 force start - start AI cycle (cancel force stop)<br>
 stop attack - stop auto attack (before aliance attack)<br>
 start attack - start auto atack<br>
-set min prize xxx - ex set min prize 100 - mean that bot try to find opponnent to attack with award att least 100 gold per warrior
+set min prize xxx - ex set min prize 100 - mean that bot try to find opponnent to attack with award att least 100 gold per warrior<br>
 show settings - show current settings<br>
 
 # add remove friend/target
