@@ -699,7 +699,7 @@ function hireDecision() {
 }
 
 function calcAITimeout() {
-  var min_time = 0.017, max_time = 3, day_time = 1.1;
+  var min_time = 0.017, max_time = 10, day_time = 1.1;
   var up_code = castle.up_code;
   var task_time = castle.task_list.length > 0 ? min_time : max_time;
   if (task_time === min_time) {
@@ -757,7 +757,9 @@ function calcAITimeout() {
   castle.ai_timeout *= 60 * 1000;
   if ((castle.ai_timeout > 0) && (castle.task_list.length === 0)) {
     castle.task_list.push({type:'wait',until:time() + Math.round(castle.ai_timeout/1000, 0),comment:'calcAITimeout: ' + arr_tt[arr_min_idx]});
-    castle.task_list.push({type:'command',position_id:ai_position_id_top,command:command_building,comment:'calcAITimeout: ' + arr_tt[arr_min_idx]});
+    if (castle.ai_timeout > 60000) {
+      castle.task_list.push({type:'command',position_id:ai_position_id_top,command:command_building,comment:'calcAITimeout: ' + arr_tt[arr_min_idx]});
+    }
   }
   
   if (castle.ai_timeout < 0) {
@@ -941,16 +943,16 @@ function attackDecision() {
     weak = weak || ((castle.opponent.karma === 2) && (castle.opponent.territory <= castle.territory * 0.2) && (castle.opponent.territory < 10000));
     weak = weak || ((castle.opponent.karma === 3) && (castle.opponent.territory <= castle.territory * 0.05) && (castle.opponent.territory <= 2000));
     norm = (castle.opponent.karma >= 0) && weak;// && (castle.opponent.territory >= castle.territory * 0);
-    console.warn('attackDecision', castle.opponent, norm, castle.friend_aliance, castle.friend_user, castle.target);
+    console.warn('attackDecision', castle.opponent, norm, castle.settings.friend_aliance, castle.settings.friend_user, castle.settings.target);
     if (castle.opponent.name && castle.enemy[castle.opponent.name]) {
       norm = (norm && (castle.enemy[castle.opponent.name].prize >= castle.settings.gold_min_prize)) || (weak && (castle.enemy[castle.opponent.name].gold_total < castle.enemy[castle.opponent.name].gold_lose));
     }
-    norm = norm && (castle.friend_user.indexOf(',' + castle.opponent.name.toLowerCase()) === -1);
+    norm = norm && (castle.settings.friend_user.indexOf(',' + castle.opponent.name.toLowerCase()) === -1);
     if (norm && (castle.opponent.alliance != '')) {
-      norm = castle.friend_aliance.indexOf(',' + castle.opponent.alliance) === -1;
+      norm = castle.settings.friend_aliance.indexOf(',' + castle.opponent.alliance) === -1;
     }
     if (castle.settings.vendetta) {
-      norm = norm || (weak && (((castle.opponent.alliance != '') && (castle.target.indexOf(',' + castle.opponent.alliance) != -1)) || ((castle.opponent.name != '') && (castle.target.toLowerCase().indexOf(',' + castle.opponent.name.toLowerCase()) != -1))));
+      norm = norm || (weak && (((castle.opponent.alliance != '') && (castle.settings.target.indexOf(',' + castle.opponent.alliance) != -1)) || ((castle.opponent.name != '') && (castle.settings.target.toLowerCase().indexOf(',' + castle.opponent.name.toLowerCase()) != -1))));
     }
     if (norm && (castle.alliance != '') && (castle.opponent.alliance === castle.alliance)) {
       norm = false;
@@ -977,7 +979,7 @@ function attackDecision() {
   }
   
   if (clickButton(castle.opponent.btn_id)) {
-    castle.war_delay = time() + 15;
+    castle.war_delay = time() + 10 * 60 * 1000;
   } else {
     castle.opponent.btn_id = '';
     //castle.search_count = 0;
@@ -1135,11 +1137,11 @@ function getParamsFromStorage() {
   if (!castle.instance_id) {
     castle.instance_id = localStorage.getItem('castle_instance_id');
   }
-  if (!castle.friend_aliance) {
-    castle.friend_aliance = '';
+  if (!castle.settings.friend_aliance) {
+    castle.settings.friend_aliance = '';
   }
-  if (!castle.friend_user) {
-    castle.friend_user = '';
+  if (!castle.settings.friend_user) {
+    castle.settings.friend_user = '';
   }
   if (!castle.stop_attack) {
     castle.stop_attack = false;
@@ -1177,6 +1179,16 @@ function getParamsFromStorage() {
   if (!castle.settings.gold_min_prize) {
     castle.settings.gold_min_prize = 100;
   }
+  if (!castle.settings.friend_aliance) {
+    castle.settings.friend_aliance = castle.friend_aliance;
+  }
+  if (!castle.settings.friend_user) {
+    castle.settings.friend_user = castle.friend_user;
+  }
+  if (!castle.settings.target) {
+    castle.settings.target = castle.target;
+  }
+  
 }
 
 function setParamsToStorage() {
@@ -1589,33 +1601,33 @@ function cleanUpCode(code) {
 }
 
 function addTarget(code) {
-  if (castle.target.indexOf(',' + code) === -1) {
-    castle.target += ',' + code;
+  if (castle.settings.target.indexOf(',' + code) === -1) {
+    castle.settings.target += ',' + code;
   }
 }
 
 function removeTarget(code) {
-  castle.target.replace(',' + code, '');
+  castle.settings.target.replace(',' + code, '');
 }
 
 function addFriendAliance(code) {
-  if (castle.friend_aliance.indexOf(',' + code) === -1) {
-    castle.friend_aliance += ',' + code;
+  if (castle.settings.friend_aliance.indexOf(',' + code) === -1) {
+    castle.settings.friend_aliance += ',' + code;
   }
 }
 
 function removeFriendAliance(code) {
-  castle.friend_aliance.replace(',' + code, '');
+  castle.settings.friend_aliance.replace(',' + code, '');
 }
 
 function addFriendUser(code) {
-  if (castle.friend_user.indexOf(',' + code) === -1) {
-    castle.friend_user += ',' + code;
+  if (castle.settings.friend_user.indexOf(',' + code) === -1) {
+    castle.settings.friend_user += ',' + code;
   }
 }
 
 function removeFriendUser(code) {
-  castle.friend_user.replace(',' + code, '');
+  castle.settings.friend_user.replace(',' + code, '');
 }
 
 function setMaxGold(max_gold) {
@@ -1710,10 +1722,10 @@ function parseCommandResultDOM() {
       } else if (check_command.indexOf('remove friend user') != -1) {
         removeFriendUser(cleanUpCode(msg_text.replace(/remove friend user /ig, '').trim()));
       } else if (check_command.indexOf('clean friend') != -1) {
-        castle.friend_aliance = '';
-        castle.friend_user = '';
+        castle.settings.friend_aliance = '';
+        castle.settings.friend_user = '';
       } else if (check_command.indexOf('clean target') != -1) {
-        castle.target = '';
+        castle.settings.target = '';
       } else if (check_command.indexOf('force stop') != -1) {
         castle.stop = true;
       } if (check_command.indexOf('stop attack') != -1) {
@@ -2165,6 +2177,7 @@ function parseAttackInfo(info) {
   }
   if (info.indexOf('can not attack him') != -1) {
     castle.opponent.btn_id = '';
+    castle.war_delay = -1;
   }
   
   return true;
