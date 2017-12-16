@@ -50,6 +50,7 @@ var command_patrol_legendary = 'Legendary';
 var command_patrol_start = 'Patrol started';
 var command_war_in_progress = 'war in progress';
 var command_treasure = 'treasure';
+var command_refresh_info = 'refresh info';
 
 var arr_command = [command_top_level,command_info,command_building,command_town_hall,
                    command_house,command_trade,command_trade_buy,command_trade_food,
@@ -103,6 +104,8 @@ var arr_building = [
 {code:'after_battle',img:'',command:command_after_battle,search_key:'The battle with',position_id:-1,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
 {code:'hired',img:'',command:command_no_money,search_key:'started work',position_id:-1,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
 {code:'find_money',img:'',command:command_no_money,search_key:'find money',position_id:-1,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
+{code:'no_food',img:'',command:command_refresh_info,search_key:'eople are hungry',position_id:-1,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
+{code:'cant_attack2',img:'',command:command_cant_attack,search_key:'can not interfere',position_id:-1,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
 {code:'cant_attack',img:'',command:command_cant_attack,search_key:'can not attack',position_id:-1,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
 {code:'not_enough',img:'',command:command_no_resources,search_key:'ot enough',position_id:-1,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
 {code:'invalid_building_name',img:'',command:command_no_parse,search_key:'Invalid building name',position_id:ai_position_id_buildings,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
@@ -112,7 +115,6 @@ var arr_building = [
 {code:'war_in_progress',img:'',command:command_war_in_progress,search_key:'war in progres',position_id:-1,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
 {code:'choose_number',img:'',command:command_trade_food,search_key:'Choose number.',position_id:0,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
 {code:'before_battle',img:'',command:command_before_battle,search_key:'Our scouts found',position_id:ai_position_id_before_battle,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
-{code:'cant_attack',img:'',command:command_attack,search_key:'can not attack',position_id:-1,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
 {code:'attack1',img:'',command:command_attack,search_key:'Siege has started',position_id:-1,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
 {code:'attack2',img:'',command:command_attack,search_key:'not yet recovered from the last battle',position_id:-1,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
 {code:'under_attack',img:'',command:command_under_attack,search_key:'Your domain attacked',position_id:-1,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
@@ -944,9 +946,6 @@ function attackDecision() {
     weak = weak || ((castle.opponent.karma === 3) && (castle.opponent.territory <= castle.territory * 0.05) && (castle.opponent.territory <= 2000));
     norm = (castle.opponent.karma >= 0) && weak;// && (castle.opponent.territory >= castle.territory * 0);
     console.warn('attackDecision', castle.opponent, norm, castle.settings.friend_aliance, castle.settings.friend_user, castle.settings.target);
-    if (castle.opponent.name && castle.enemy[castle.opponent.name]) {
-      norm = (norm && (castle.enemy[castle.opponent.name].prize >= castle.settings.gold_min_prize)) || (weak && (castle.enemy[castle.opponent.name].gold_total < castle.enemy[castle.opponent.name].gold_lose));
-    }
     norm = norm && (castle.settings.friend_user.indexOf(',' + castle.opponent.name.toLowerCase()) === -1);
     if (norm && (castle.opponent.alliance != '')) {
       norm = castle.settings.friend_aliance.indexOf(',' + castle.opponent.alliance) === -1;
@@ -956,6 +955,17 @@ function attackDecision() {
     }
     if (norm && (castle.alliance != '') && (castle.opponent.alliance === castle.alliance)) {
       norm = false;
+    }
+    var gold_prize = castle.settings.gold_min_prize;
+    if (castle.search_count >= castle.settings.max_search) {
+      gold_prize *= 0.3;
+    } else if (castle.search_count >= castle.settings.max_search * 0.8) {
+      gold_prize *= 0.5;
+    } else if (castle.search_count >= castle.settings.max_search * 0.7) {
+      gold_prize *= 0.7;
+    }
+    if (castle.opponent.name && castle.enemy[castle.opponent.name]) {
+      norm = (norm && (castle.enemy[castle.opponent.name].prize >= gold_prize)) || (weak && (castle.enemy[castle.opponent.name].gold_total < castle.enemy[castle.opponent.name].gold_lose));
     }
   }
   
@@ -1137,6 +1147,9 @@ function getParamsFromStorage() {
   if (!castle.instance_id) {
     castle.instance_id = localStorage.getItem('castle_instance_id');
   }
+  if (!castle.settings) {
+    castle.settings = {food_min_day:castle.food_settings.min_day,food_buy_on:castle.food_settings.buy_on,build_array:castle.build_settings.build_array,smart_build:false,vendetta:false};
+  }
   if (!castle.settings.friend_aliance) {
     castle.settings.friend_aliance = '';
   }
@@ -1157,9 +1170,6 @@ function getParamsFromStorage() {
   }
   if (castle.next_ai_run) {
     castle.next_ai_run = -1;
-  }
-  if (!castle.settings) {
-    castle.settings = {food_min_day:castle.food_settings.min_day,food_buy_on:castle.food_settings.buy_on,build_array:castle.build_settings.build_array,smart_build:false,vendetta:false};
   }
   if (!castle.search_count) {
     castle.search_count = 0;
@@ -1187,6 +1197,9 @@ function getParamsFromStorage() {
   }
   if (!castle.settings.target) {
     castle.settings.target = castle.target;
+  }
+  if (!castle.settings.max_search) {
+    castle.settings.max_search = 50;
   }
   
 }
@@ -1457,6 +1470,9 @@ function parseCommandEx(command, txt) {
       case command_cant_attack:
         result = parseCantAttackInfo(txt);
         break;
+      case command_refresh_info:
+        result = parseRefreshInfo(txt);
+        break;
       case command_patrol:
         result = parsePatrolInfo(txt);
         break;
@@ -1684,7 +1700,10 @@ function parseCommandResultDOM() {
         }
         break;
       }
-      if (check_command.indexOf('set min prize') != -1) {
+      
+      if (check_command.indexOf('set max search') != -1) {
+        castle.settings.max_search = getInt(check_command);
+      } else if (check_command.indexOf('set min prize') != -1) {
         castle.settings.gold_min_prize = getInt(check_command);
       } else if (check_command.indexOf('vendetta on') != -1) {
         castle.settings.vendetta = true;
@@ -2256,6 +2275,11 @@ function parseAfterAttackInfo(info) {
 function parseCantAttackInfo(info) {
   castle.opponent.btn_id = '';
   castle.war_delay = -2;
+  return true;
+}
+
+function refreshInfo(info) {
+  castle.task_list = [{type:'command',position_id:ai_position_id_top,command:command_building,comment:'refreshInfo'}];
   return true;
 }
 
