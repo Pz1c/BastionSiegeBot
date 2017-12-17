@@ -1836,6 +1836,7 @@ function parseTradeInfo(info) {
         break;
       case 4: // 
         castle.food = getInt(arr1[1]);
+        castle.food_update = time();
         break;
     }
   }
@@ -1879,8 +1880,7 @@ function parseBuildingRow(code, arr) {
       var p = getInt(arr[1]);
       castle.food = p;
       castle.food_update = time();
-      break;  
-      food_update
+      break;
   }
 }
 
