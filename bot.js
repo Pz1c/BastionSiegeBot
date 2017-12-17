@@ -187,7 +187,8 @@ var castle=
    under_attack_time:-1,
    in_battle_time:-1,
    target:'',
-   human_update:-1};
+   human_update:-1,
+   food_update:-1};
 
 //AI core
 
@@ -462,7 +463,7 @@ function getFoodDecision() {
   castle.need_buy_food = ((castle.daily_food_real > 0) && (castle.food / castle.daily_food_real <= castle.settings.food_min_day)) || (castle.food < castle.barracks.worker_max * 2);
   console.log('getFoodDecision', castle);
   if (castle.need_buy_food) {
-    var need_food = castle.daily_food_real * castle.settings.food_buy_on + castle.barracks.worker_max * castle.settings.food_buy_on / 10;
+    var need_food = castle.settings.food_buy_on * (castle.daily_food_real + castle.barracks.worker_max * castle.settings.food_buy_on / 10);
     var food_by_gold = Math.floor((castle.gold - castle.reserved_gold) / 2);
     console.log('getDecision food', castle.farm.produce, castle.food_daily, castle.food, castle.storage.food_max, castle.barracks.worker_max * 3, castle.gold, castle.reserved_gold);
     console.log('getDecision food', need_food, castle.storage.food_max, Math.floor((castle.gold - castle.reserved_gold) / 2));
@@ -759,7 +760,7 @@ function calcAITimeout() {
   castle.ai_timeout *= 60 * 1000;
   if ((castle.ai_timeout > 0) && (castle.task_list.length === 0)) {
     castle.task_list.push({type:'wait',until:time() + Math.round(castle.ai_timeout/1000, 0),comment:'calcAITimeout: ' + arr_tt[arr_min_idx]});
-    if (castle.ai_timeout > 60000) {
+    if ((castle.ai_timeout > 60000) || (castle.food_update < 0) || (time() - castle.food_update > 5 * 60)) {
       castle.task_list.push({type:'command',position_id:ai_position_id_top,command:command_building,comment:'calcAITimeout: ' + arr_tt[arr_min_idx]});
     }
   }
@@ -1874,6 +1875,12 @@ function parseBuildingRow(code, arr) {
         castle.EOD = time() + 24 * 60 * 60 - getInt(p[0]) * 60 * 60 - getInt(p[1]) * 60 - getInt(p[2]) + 600;
       }
       break;
+    case 'food':
+      var p = getInt(arr[1]);
+      castle.food = p;
+      castle.food_update = time();
+      break;  
+      food_update
   }
 }
 
@@ -2013,6 +2020,7 @@ function parseStorageInfo(info) {
     }
   }
   
+  castle.food_update = time();
   castle[building_code].up_add_cost = calcUpgradePrice(building_code);
   castle[building_code].up_full_cost = castle[building_code].up_add_cost * 1 + castle[building_code].level_up_gold * 1;
   last_cycle_time = time();
@@ -2165,6 +2173,7 @@ function parseWarInfo(info) {
   castle.barracks.worker_current = ii[0];
   castle.barracks.worker_max = ii[1];
   castle.food = getInt(arr[12]);
+  castle.food_update = time();
   
   var delay_found = false
   for (var i = 1; i <= 3; ++i) {
