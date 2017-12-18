@@ -946,14 +946,7 @@ function attackDecision() {
     weak = weak || ((castle.opponent.karma === 2) && (castle.opponent.territory <= castle.territory * 0.2) && (castle.opponent.territory < 10000));
     weak = weak || ((castle.opponent.karma === 3) && (castle.opponent.territory <= castle.territory * 0.05) && (castle.opponent.territory <= 2000));
     norm = (castle.opponent.karma >= 0) && weak;// && (castle.opponent.territory >= castle.territory * 0);
-    console.warn('attackDecision', castle.opponent, norm, castle.settings.friend_aliance, castle.settings.friend_user, castle.settings.target);
-    norm = norm && (castle.settings.friend_user.indexOf(',' + castle.opponent.name.toLowerCase()) === -1);
-    if (norm && (castle.opponent.alliance != '')) {
-      norm = castle.settings.friend_aliance.indexOf(',' + castle.opponent.alliance) === -1;
-    }
-    if (norm && (castle.alliance != '') && (castle.opponent.alliance === castle.alliance)) {
-      norm = false;
-    }
+    
     var gold_prize = castle.settings.gold_min_prize;
     if (castle.search_count >= castle.settings.max_search) {
       gold_prize *= 0.3;
@@ -967,6 +960,14 @@ function attackDecision() {
     }
     if (castle.settings.vendetta) {
       norm = norm || (weak && (((castle.opponent.alliance != '') && (castle.settings.target.indexOf(',' + castle.opponent.alliance) != -1)) || ((castle.opponent.name != '') && (castle.settings.target.toLowerCase().indexOf(',' + castle.opponent.name.toLowerCase()) != -1))));
+    }
+    console.warn('attackDecision', castle.opponent, norm, castle.settings.friend_aliance, castle.settings.friend_user, castle.settings.target);
+    norm = norm && (castle.settings.friend_user.indexOf(',' + castle.opponent.name.toLowerCase()) === -1);
+    if (norm && (castle.opponent.alliance != '')) {
+      norm = castle.settings.friend_aliance.indexOf(',' + castle.opponent.alliance) === -1;
+    }
+    if (norm && (castle.alliance != '') && (castle.opponent.alliance === castle.alliance)) {
+      norm = false;
     }
   }
   
