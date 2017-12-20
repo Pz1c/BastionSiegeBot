@@ -982,8 +982,8 @@ function attackDecision() {
     if (castle.settings.vendetta) {
       norm = norm || (weak && (((castle.opponent.alliance != '') && (castle.settings.target.indexOf(',' + castle.opponent.alliance) != -1)) || ((castle.opponent.name != '') && (castle.settings.target.toLowerCase().indexOf(',' + castle.opponent.name.toLowerCase()) != -1))));
     }
-    console.warn('attackDecision', castle.opponent, norm, castle.settings.friend_aliance, castle.settings.friend_user, castle.settings.target);
     prepareFriendSettings();
+    console.warn('attackDecision', castle.opponent, norm, castle.settings.friend_aliance, castle.settings.friend_user, castle.settings.target);
     norm = norm && (castle.settings.friend_user.indexOf(',' + castle.opponent.name.toLowerCase()) === -1);
     if (norm && (castle.opponent.alliance != '')) {
       norm = castle.settings.friend_aliance.indexOf(',' + castle.opponent.alliance) === -1;
