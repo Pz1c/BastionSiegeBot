@@ -463,7 +463,7 @@ function getFoodDecision() {
   castle.need_buy_food = ((castle.daily_food_real > 0) && (castle.food / castle.daily_food_real <= castle.settings.food_min_day)) || (castle.food < castle.barracks.worker_max * 2);
   console.log('getFoodDecision', castle);
   if (castle.need_buy_food) {
-    var need_food = castle.settings.food_buy_on * (castle.daily_food_real + castle.barracks.worker_max * castle.settings.food_buy_on / 10);
+    var need_food = castle.settings.food_buy_on * (castle.daily_food_real + castle.barracks.worker_max / 10);
     var food_by_gold = Math.floor((castle.gold - castle.reserved_gold) / 2);
     console.log('getDecision food', castle.farm.produce, castle.food_daily, castle.food, castle.storage.food_max, castle.barracks.worker_max * 3, castle.gold, castle.reserved_gold);
     console.log('getDecision food', need_food, castle.storage.food_max, Math.floor((castle.gold - castle.reserved_gold) / 2));
@@ -913,6 +913,27 @@ function defenceDecision() {
   castle.task_list = [{type:'command',parent_position_id:ai_position_id_walls,position_id:ai_position_id_recruit,command:castle.walls.worker_max,build_code:'walls',comment:'defence'}];
 }
 
+function prepareFriendSettings() {
+  if (!castle.settings.friend_aliance) {
+    castle.settings.friend_aliance = castle.friend_aliance;
+  }
+  if (!castle.settings.friend_user) {
+    castle.settings.friend_user = castle.friend_user;
+  }
+  if (!castle.settings.target) {
+    castle.settings.target = castle.target;
+  }
+  if (!castle.settings.friend_aliance) {
+    castle.settings.friend_aliance = '';
+  }
+  if (!castle.settings.friend_user) {
+    castle.settings.friend_user = '';
+  }
+  if (!castle.settings.target) {
+    castle.settings.target = '';
+  }
+}
+
 function attackDecision() {
   if (castle.stop_attack) {
     return;
@@ -946,17 +967,7 @@ function attackDecision() {
     weak = weak || ((castle.opponent.karma === 2) && (castle.opponent.territory <= castle.territory * 0.2) && (castle.opponent.territory < 10000));
     weak = weak || ((castle.opponent.karma === 3) && (castle.opponent.territory <= castle.territory * 0.05) && (castle.opponent.territory <= 2000));
     norm = (castle.opponent.karma >= 0) && weak;// && (castle.opponent.territory >= castle.territory * 0);
-    console.warn('attackDecision', castle.opponent, norm, castle.settings.friend_aliance, castle.settings.friend_user, castle.settings.target);
-    norm = norm && (castle.settings.friend_user.indexOf(',' + castle.opponent.name.toLowerCase()) === -1);
-    if (norm && (castle.opponent.alliance != '')) {
-      norm = castle.settings.friend_aliance.indexOf(',' + castle.opponent.alliance) === -1;
-    }
-    if (castle.settings.vendetta) {
-      norm = norm || (weak && (((castle.opponent.alliance != '') && (castle.settings.target.indexOf(',' + castle.opponent.alliance) != -1)) || ((castle.opponent.name != '') && (castle.settings.target.toLowerCase().indexOf(',' + castle.opponent.name.toLowerCase()) != -1))));
-    }
-    if (norm && (castle.alliance != '') && (castle.opponent.alliance === castle.alliance)) {
-      norm = false;
-    }
+    
     var gold_prize = castle.settings.gold_min_prize;
     if (castle.search_count >= castle.settings.max_search) {
       gold_prize *= 0.3;
@@ -967,6 +978,18 @@ function attackDecision() {
     }
     if (castle.opponent.name && castle.enemy[castle.opponent.name]) {
       norm = (norm && (castle.enemy[castle.opponent.name].prize >= gold_prize)) || (weak && (castle.enemy[castle.opponent.name].gold_total < castle.enemy[castle.opponent.name].gold_lose));
+    }
+    if (castle.settings.vendetta) {
+      norm = norm || (weak && (((castle.opponent.alliance != '') && (castle.settings.target.indexOf(',' + castle.opponent.alliance) != -1)) || ((castle.opponent.name != '') && (castle.settings.target.toLowerCase().indexOf(',' + castle.opponent.name.toLowerCase()) != -1))));
+    }
+    console.warn('attackDecision', castle.opponent, norm, castle.settings.friend_aliance, castle.settings.friend_user, castle.settings.target);
+    prepareFriendSettings();
+    norm = norm && (castle.settings.friend_user.indexOf(',' + castle.opponent.name.toLowerCase()) === -1);
+    if (norm && (castle.opponent.alliance != '')) {
+      norm = castle.settings.friend_aliance.indexOf(',' + castle.opponent.alliance) === -1;
+    }
+    if (norm && (castle.alliance != '') && (castle.opponent.alliance === castle.alliance)) {
+      norm = false;
     }
   }
   
@@ -1153,9 +1176,6 @@ function getParamsFromStorage() {
   }
   if (!castle.settings.friend_aliance) {
     castle.settings.friend_aliance = '';
-  }
-  if (!castle.settings.friend_user) {
-    castle.settings.friend_user = '';
   }
   if (!castle.stop_attack) {
     castle.stop_attack = false;
