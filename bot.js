@@ -1684,7 +1684,7 @@ function removeFriendUser(code) {
   if (code === '') {
     return;
   }
-  castle.settings.friend_user.replace(',' + code, '');
+  castle.settings.friend_user = castle.settings.friend_user.toLowerCase().replace(',' + code.toLowerCase(), '');
 }
 
 function setMaxGold(max_gold) {
