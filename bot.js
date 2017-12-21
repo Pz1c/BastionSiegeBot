@@ -984,7 +984,7 @@ function attackDecision() {
     }
     prepareFriendSettings();
     console.warn('attackDecision', castle.opponent, norm, castle.settings.friend_aliance, castle.settings.friend_user, castle.settings.target);
-    norm = norm && (castle.settings.friend_user.indexOf(',' + castle.opponent.name.toLowerCase()) === -1);
+    norm = norm && (castle.settings.friend_user.toLowerCase().indexOf(',' + castle.opponent.name.toLowerCase()) === -1);
     if (norm && (castle.opponent.alliance != '')) {
       norm = castle.settings.friend_aliance.indexOf(',' + castle.opponent.alliance) === -1;
     }
@@ -1631,6 +1631,8 @@ function cleanUpCode(code) {
     var user_name = res.replace('from ', '');
     if (castle.enemy[user_name] && castle.enemy[user_name].alians) {
       res = castle.enemy[user_name].alians;
+    } else {
+      res = '';
     }
   }
   
@@ -1638,32 +1640,50 @@ function cleanUpCode(code) {
 }
 
 function addTarget(code) {
+  if (code === '') {
+    return;
+  }
   if (castle.settings.target.indexOf(',' + code) === -1) {
     castle.settings.target += ',' + code;
   }
 }
 
 function removeTarget(code) {
+  if (code === '') {
+    return;
+  }
   castle.settings.target.replace(',' + code, '');
 }
 
 function addFriendAliance(code) {
+  if (code === '') {
+    return;
+  }
   if (castle.settings.friend_aliance.indexOf(',' + code) === -1) {
     castle.settings.friend_aliance += ',' + code;
   }
 }
 
 function removeFriendAliance(code) {
+  if (code === '') {
+    return;
+  }
   castle.settings.friend_aliance.replace(',' + code, '');
 }
 
 function addFriendUser(code) {
+  if (code === '') {
+    return;
+  }
   if (castle.settings.friend_user.indexOf(',' + code) === -1) {
     castle.settings.friend_user += ',' + code;
   }
 }
 
 function removeFriendUser(code) {
+  if (code === '') {
+    return;
+  }
   castle.settings.friend_user.replace(',' + code, '');
 }
 
