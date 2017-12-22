@@ -2370,7 +2370,7 @@ function parsePatrolStarted(info) {
 
 function parseWarInProgress(info) {
   castle.in_battle = true;
-  
+  castle.task_list = [];
   return true;
 }
 
