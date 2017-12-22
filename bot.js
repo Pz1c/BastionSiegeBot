@@ -104,14 +104,14 @@ var arr_building = [
 {code:'after_battle',img:'',command:command_after_battle,search_key:'The battle with',position_id:-1,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
 {code:'hired',img:'',command:command_no_money,search_key:'started work',position_id:-1,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
 {code:'find_money',img:'',command:command_no_money,search_key:'find money',position_id:-1,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
-{code:'no_food',img:'',command:command_refresh_info,search_key:'eople are hungry',position_id:-1,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
+{code:'no_food',img:'',command:command_refresh_info,search_key:'People are hungry',position_id:-1,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
 {code:'cant_attack2',img:'',command:command_cant_attack,search_key:'can not interfere',position_id:-1,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
 {code:'cant_attack',img:'',command:command_cant_attack,search_key:'can not attack',position_id:-1,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
 {code:'not_enough',img:'',command:command_no_resources,search_key:'ot enough',position_id:-1,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
 {code:'invalid_building_name',img:'',command:command_no_parse,search_key:'Invalid building name',position_id:ai_position_id_buildings,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
 {code:'joined',img:'',command:command_joined,search_key:'joined',position_id:-1,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
 {code:'delivered',img:'',command:command_trade_food,search_key:'delivered to',position_id:-1,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
-{code:'treasure',img:'',command:command_treasure,search_key:'treasure',position_id:-1,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
+{code:'treasure',img:'',command:command_treasure,search_key:'treasur',position_id:-1,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
 {code:'war_in_progress',img:'',command:command_war_in_progress,search_key:'war in progres',position_id:-1,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
 {code:'choose_number',img:'',command:command_trade_food,search_key:'Choose number.',position_id:0,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
 {code:'before_battle',img:'',command:command_before_battle,search_key:'Our scouts found',position_id:ai_position_id_before_battle,index:-1,hire_position:'',hire_count:0,recall:false,build_priority:-1},
@@ -1492,7 +1492,7 @@ function parseCommandEx(command, txt) {
         result = parseCantAttackInfo(txt);
         break;
       case command_refresh_info:
-        result = parseRefreshInfo(txt);
+        result = parseTreasure(txt);
         break;
       case command_patrol:
         result = parsePatrolInfo(txt);
@@ -2375,7 +2375,7 @@ function parseWarInProgress(info) {
 }
 
 function parseTreasure(info) {
-  castle.task_list = [{type:'command',position_id:ai_position_id_top,command:command_building,comment:'after patrol'}];
+  castle.task_list = [{type:'command',position_id:ai_position_id_top,command:'',comment:'after patrol'}];
   return true;
 }
 
