@@ -884,7 +884,7 @@ function spentGold() {
   
   var diff = Math.floor((castle.wood - castle.stone) / 2);
   var wood_to_buy = 0, stone_to_buy = 0;
-  var day_to_buy = Math.round(castle[castle.up_code].level_up_gold / (castle.gold_daily + castle.sawmill.worker_current * 2 + castle.mine.worker_current * 2));
+  var day_to_buy = Math.round(castle[castle.up_code].up_full_cost / (castle.gold_daily + castle.sawmill.worker_current * 2 + castle.mine.worker_current * 2));
   var wood_to_mine = day_to_buy * castle.sawmill.worker_current;
   var stone_to_mine = day_to_buy * castle.mine.worker_current;
   if (castle.wood < castle[castle.up_code].level_up_wood) {
@@ -953,6 +953,10 @@ function attackDecision() {
   }
   
   if (castle.barracks.worker_current < castle.barracks.worker_max) {
+    return;
+  }
+  
+  if ((castle.house.worker_current < castle.house.worker_max / 2) && (castle.storage.worker_current + castle.farm.worker_current + castle.sawmill.worker_current + castle.mine.worker_current > 0)) {
     return;
   }
   
@@ -2292,18 +2296,18 @@ function getBattleResult(res, full_info) {
     result[2] = 0;
     --add_idx;
   } else {
-    result[2] = res[2];
+    result[2] = getInt(res[2]);
   }
   if (full_info.indexOf('without a loss') != -1) {
     --add_idx;
   }
-  if (full_info.indexOf('revard is') != -1) {
-    result[3] = res[4 + add_idx];
+  if (full_info.indexOf('reward is') != -1) {
+    result[3] = getInt(res[4 + add_idx]);
   } else {
     result[3] = 0;
   }
   if (full_info.indexOf('You lose') != -1) {
-    result[3] = res[4 + add_idx];
+    result[3] = getInt(res[4 + add_idx]);
   }
   return result;
 }
@@ -2316,18 +2320,18 @@ function parseAfterBattleInfo(info) {
   console.log('parseAfterBattleInfo', result, res, info);
   
   var title = parseOpponentTitle(result[0]);
-  castle.barracks.worker_current = getInt(result[2]);
+  castle.barracks.worker_current = (result[2]);
   var e = {name:title[0],alians:title[1],prize:0,gold_last:0,gold_total:0,attack:castle.under_attack ? 0 : 1,defence:castle.under_attack ? 1 : 0,win:0,lose:0,gold_lose:0};
   
   var win = info.indexOf('Your army won') != -1;
   if (win) {
-    e.prize = Math.round(getInt(result[3])/castle.barracks.worker_max);
-    e.gold_last = getInt(result[3]);
-    e.gold_total = getInt(result[3]);
+    e.prize = Math.round((result[3])/castle.barracks.worker_max);
+    e.gold_last = (result[3]);
+    e.gold_total = (result[3]);
     e.win = 1;
   } else if (info.indexOf('our army lose') != -1) {
     e.lose = 1;
-    e.gold_lose = getInt(result[result.length - 1]);
+    e.gold_lose = (result[result.length - 1]);
   }
 
   if (castle.enemy[e.name]) {
