@@ -728,7 +728,7 @@ function calcAITimeout() {
   if (war_time <= 0) {
     war_time = min_time;
   }
-  if (castle.stop_attack) {
+  if (castle.settings.stop_attack) {
     war_time = max_time;
   }
   
@@ -884,15 +884,19 @@ function spentGold() {
   
   var diff = Math.floor((castle.wood - castle.stone) / 2);
   var wood_to_buy = 0, stone_to_buy = 0;
-  var day_to_buy = Math.round(castle[castle.up_code].level_up_gold / castle.gold_daily);
+  var day_to_buy = Math.round(castle[castle.up_code].level_up_gold / (castle.gold_daily + castle.sawmill.worker_current * 2 + castle.mine.worker_current * 2));
+  var wood_to_mine = day_to_buy * castle.sawmill.worker_current;
+  var stone_to_mine = day_to_buy * castle.mine.worker_current;
   if (castle.wood < castle[castle.up_code].level_up_wood) {
-    wood_to_buy = Math.min(resources_to_buy - diff, castle.storage.wood_max - castle.wood - castle.sawmill.worker_current * day_to_buy - diff, castle[castle.up_code].level_up_wood - castle.wood);
+    wood_to_buy = Math.min(resources_to_buy - diff, castle.storage.wood_max - castle.wood - diff, castle[castle.up_code].level_up_wood - castle.wood, resources_to_buy);
+    wood_to_buy -= wood_to_mine;
     if (wood_to_buy > 0) {
       castle.task_list.push({type:'command',position_id:arr_buy_resource['wood'],command:wood_to_buy,comment:'spent gold wood'});
     }
   }
   if (castle.stone < castle[castle.up_code].level_up_stone) {
-    stone_to_buy = Math.min(resources_to_buy + diff, castle.storage.stone_max - castle.stone - castle.mine.worker_current * day_to_buy + diff, castle[castle.up_code].level_up_stone - castle.stone);
+    stone_to_buy = Math.min(resources_to_buy + diff, castle.storage.stone_max - castle.stone + diff, castle[castle.up_code].level_up_stone - castle.stone, resources_to_buy);
+    stone_to_buy -= stone_to_mine;
     if (stone_to_buy > 0) {
       castle.task_list.push({type:'command',position_id:arr_buy_resource['stone'],command:stone_to_buy,comment:'spent gold stone'});
     }
@@ -935,7 +939,7 @@ function prepareFriendSettings() {
 }
 
 function attackDecision() {
-  if (castle.stop_attack) {
+  if (castle.settings.stop_attack) {
     return;
   }
   
@@ -1180,6 +1184,12 @@ function getParamsFromStorage() {
   if (!castle.stop_attack) {
     castle.stop_attack = false;
   }
+  if (!castle.settings.stop_attack) {
+    castle.settings.stop_attack = castle.stop_attack;
+  }
+  if (!castle.settings.stop) {
+    castle.settings.stop = castle.stop;
+  }
   if (!castle.ai_position_id) {
     castle.ai_position_id = -1;
   }
@@ -1230,7 +1240,7 @@ function setParamsToStorage() {
 }
 
 function AIcycle() {
-  if (castle.stop) {
+  if (castle.settings.stop) {
     return;
   }
   
@@ -1691,6 +1701,10 @@ function setMaxGold(max_gold) {
   
 }
 
+function showSettings() {
+  sendCommandEx(JSON.stringify(castle.settings));
+}
+
 var first_parsing = 0;
 function parseCommandResultDOM() {
   var msg = $('div.im_history_message_wrap:not([id])');
@@ -1744,20 +1758,28 @@ function parseCommandResultDOM() {
       
       if (check_command.indexOf('set max search') != -1) {
         castle.settings.max_search = getInt(check_command);
+        showSettings();
       } else if (check_command.indexOf('set min prize') != -1) {
         castle.settings.gold_min_prize = getInt(check_command);
+        showSettings();
       } else if (check_command.indexOf('vendetta on') != -1) {
         castle.settings.vendetta = true;
+        showSettings();
       } else if (check_command.indexOf('vendetta off') != -1) {
         castle.settings.vendetta = false;
+        showSettings();
       } if (check_command.indexOf('smart build on') != -1) {
         castle.settings.smart_build = true;
+        showSettings();
       } else if (check_command.indexOf('smart build off') != -1) {
         castle.settings.smart_build = false;
+        showSettings();
       } else if (check_command.indexOf('build on') != -1) {
         addIntoBuildList(msg_text.replace(/build on /ig, ''));
+        showSettings();
       } else if (check_command.indexOf('build off') != -1) {
         kickOutBuildList(msg_text.replace(/build off /ig, ''));
+        showSettings();
       } else if (check_command.indexOf('start now') != -1) {
         while ((castle.task_list.length > 0) && (castle.task_list[0].type === 'wait')) {
           castle.task_list.shift();
@@ -1771,40 +1793,52 @@ function parseCommandResultDOM() {
         with_command = true;
       } else if (check_command.indexOf('add target') != -1) {
         addTarget(cleanUpCode(msg_text.replace(/add target /ig, '').trim()));
+        showSettings();
       } else if (check_command.indexOf('remove target') != -1) {
         removeTarget(cleanUpCode(msg_text.replace(/remove target /ig, '').trim()));
+        showSettings();
       } else if (check_command.indexOf('add friend aliance') != -1) {
         addFriendAliance(cleanUpCode(msg_text.replace(/add friend aliance /ig, '').trim()));
+        showSettings();
       } else if (check_command.indexOf('remove friend aliance') != -1) {
         removeFriendAliance(cleanUpCode(msg_text.replace(/remove friend aliance /ig, '').trim()));
+        showSettings();
       } else if (check_command.indexOf('add friend user') != -1) {
         addFriendUser(cleanUpCode(msg_text.replace(/add friend user /ig, '').trim()));
+        showSettings();
       } else if (check_command.indexOf('remove friend user') != -1) {
         removeFriendUser(cleanUpCode(msg_text.replace(/remove friend user /ig, '').trim()));
+        showSettings();
       } else if (check_command.indexOf('clean friend') != -1) {
         castle.settings.friend_aliance = '';
         castle.settings.friend_user = '';
+        showSettings();
       } else if (check_command.indexOf('clean target') != -1) {
         castle.settings.target = '';
+        showSettings();
       } else if (check_command.indexOf('force stop') != -1) {
-        castle.stop = true;
+        castle.settings.stop = true;
+        showSettings();
       } if (check_command.indexOf('stop attack') != -1) {
-        castle.stop_attack = true;
+        castle.settings.stop_attack = true;
+        showSettings();
       } if (check_command.indexOf('start attack') != -1) {
-        castle.stop_attack = false;
+        castle.settings.stop_attack = false;
+        showSettings();
       } else if (check_command.indexOf('force start') != -1) {
-        castle.stop = false;
+        castle.settings.stop = false;
+        showSettings();
       } else if (check_command.indexOf('force1 start') != -1) {
         if (castle.instance_id == 1) {
-          castle.stop = false;
+          castle.settings.stop = false;
         }
       } else if (check_command.indexOf('force2 start') != -1) {
         if (castle.instance_id == 2) {
-          castle.stop = false;
+          castle.settings.stop = false;
         }
       } else if (check_command.indexOf('force3 start') != -1) {
         if (castle.instance_id == 3) {
-          castle.stop = false;
+          castle.settings.stop = false;
         }
       } else if (check_command.indexOf('show statistic') != -1) {
         //castle.stop = true;
@@ -1815,11 +1849,11 @@ function parseCommandResultDOM() {
       } else if (check_command.indexOf('show value') != -1) {
         var cmd = check_command.replace('run command ', '').trim();
         console.log('try show', cmd);
-        writeMessage(castle[cmd]);
+        sendCommandEx(castle[cmd]);
       } else if (check_command.indexOf('show settings') != -1) {
         var cmd = check_command.replace('run command ', '').trim();
         console.log('try show', cmd);
-        sendCommandEx(JSON.stringify(castle.settings));
+        showSettings();
       }
       continue;
     }
@@ -2251,12 +2285,35 @@ function parseAttackInfo(info) {
   return true;
 }
 
+function getBattleResult(res, full_info) {
+  var result = [res[0], res[1]];
+  var add_idx = 0;
+  if (full_info.indexOf('None of the') != -1) {
+    result[2] = 0;
+    --add_idx;
+  } else {
+    result[2] = res[2];
+  }
+  if (full_info.indexOf('without a loss') != -1) {
+    --add_idx;
+  }
+  if (full_info.indexOf('revard is') != -1) {
+    result[3] = res[4 + add_idx];
+  } else {
+    result[3] = 0;
+  }
+  if (full_info.indexOf('You lose') != -1) {
+    result[3] = res[4 + add_idx];
+  }
+  return result;
+}
+
 function parseAfterBattleInfo(info) {
-  var result = info.match(/<code>(.*?)<\/code>/g).map(function(val){
+  var res = info.match(/<code>(.*?)<\/code>/g).map(function(val){
      return val.replace(/<\/?code>/g,'');
   });
-  
-  console.log('parseAfterBattleInfo', result);
+  var result = getBattleResult(res, info);  
+  console.log('parseAfterBattleInfo', result, res, info);
   
   var title = parseOpponentTitle(result[0]);
   castle.barracks.worker_current = getInt(result[2]);
