@@ -773,7 +773,7 @@ function calcAITimeout() {
   if ((castle.ai_timeout > 0) && (castle.task_list.length === 0)) {
     castle.task_list.push({type:'wait',until:time() + Math.round(castle.ai_timeout/1000, 0),comment:'calcAITimeout: ' + arr_tt[arr_min_idx]});
     if ((castle.ai_timeout > 60000) || (castle.food_update < 0) || (time() - castle.food_update > 5 * 60)) {
-      refreshCastleInfo('calcAITimeout: ' + arr_tt[arr_min_idx], true);
+      refreshCastleInfo('calcAITimeout: ' + arr_tt[arr_min_idx], false);
       //castle.task_list.push({type:'command',position_id:ai_position_id_top,command:command_building,comment:'calcAITimeout: ' + arr_tt[arr_min_idx]});
     }
   }
@@ -956,7 +956,7 @@ function snowballDecision() {
     return;
   }
   
-  if (castle.snowball_delay < time()) {
+  if (castle.snowball_delay > time()) {
     return;
   }
   
@@ -968,7 +968,7 @@ function snowballDecision() {
   }
   
   if (castle.snowball_btn && clickButton(castle.snowball_btn)) {
-    castle.snowball_delay = time() + 60;
+    castle.snowball_delay = time() + 70;
     return;
   }  
 }
@@ -1292,6 +1292,23 @@ function getParamsFromStorage() {
   if (castle.settings.version < 1) {
     cleanUpEnemies();
     castle.settings.version = 1;
+  }
+  
+  if (castle.settings.version < 2) {
+    cleanUpEnemiesAliance();
+    castle.settings.version = 2;
+  }
+}
+
+function cleanUpEnemiesAliance() {
+  for (var enemy_name in castle.enemy) {
+    var arr_all = splitter.splitGraphemes(castle.enemy[enemy_name].alians);
+    if (arr_all.length > 1) {
+      castle.enemy[enemy_name].alliance = arr_all[arr_all.length - 1];
+    } else {
+      castle.enemy[enemy_name].alliance = castle.enemy[enemy_name].alians;
+    }
+    delete castle.enemy[enemy_name].alians;    
   }
 }
 
@@ -1726,8 +1743,8 @@ function cleanUpCode(code) {
   }
   if (res.indexOf('from ') === 0) {
     var user_name = res.replace('from ', '');
-    if (castle.enemy[user_name] && castle.enemy[user_name].alians) {
-      res = castle.enemy[user_name].alians;
+    if (castle.enemy[user_name] && castle.enemy[user_name].alliance) {
+      res = castle.enemy[user_name].alliance;
     } else {
       res = '';
     }
@@ -2432,7 +2449,7 @@ function parseAfterBattleInfo(info) {
   
   var title = parseOpponentTitle(result[0]);
   castle.barracks.worker_current = (result[2]);
-  var e = {name:title[0],alians:title[1],prize:0,gold_last:0,gold_total:0,attack:castle.under_attack ? 0 : 1,defence:castle.under_attack ? 1 : 0,win:0,lose:0,gold_lose:0};
+  var e = {name:title[0],alliance:title[1],prize:0,gold_last:0,gold_total:0,attack:castle.under_attack ? 0 : 1,defence:castle.under_attack ? 1 : 0,win:0,lose:0,gold_lose:0};
   
   var win = info.indexOf('Your army won') != -1;
   if (win) {
@@ -2446,7 +2463,7 @@ function parseAfterBattleInfo(info) {
   }
 
   if (castle.enemy[e.name]) {
-    castle.enemy[e.name].alians = e.alians;
+    castle.enemy[e.name].alliance = e.alliance;
     castle.enemy[e.name].prize = e.prize;
     castle.enemy[e.name].gold_last = e.gold_last;
     castle.enemy[e.name].gold_total += e.gold_last;
@@ -2459,7 +2476,7 @@ function parseAfterBattleInfo(info) {
     castle.enemy[e.name] = e;
   }
   
-  refreshCastleInfo('after battle', true);
+  refreshCastleInfo('after battle', false);
   //castle.task_list = [{type:'command',position_id:ai_position_id_top,command:command_building,comment:'after battle'}];
   
   if (castle.under_attack) {
@@ -2502,7 +2519,7 @@ function parseCantAttackInfo(info) {
 }
 
 function refreshInfo(info) {
-  refreshCastleInfo('refreshInfo', true);
+  refreshCastleInfo('refreshInfo', false);
   //castle.task_list = [{type:'command',position_id:ai_position_id_top,command:command_building,comment:'refreshInfo'}];
   return true;
 }
