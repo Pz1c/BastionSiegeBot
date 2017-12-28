@@ -44,5 +44,5 @@ add/remove target [username]/from [username] - add/remove user/aliance into/from
 example "add target Galbarad" - add user with nik Galabrad to your target list (not recomended ;)<br>
 example "add target from Galbarad" - add aliance where user with nik Galabrad is a member to your target list<br>
 
-#spec commands
+# spec commands
 vendetta on/off - on off vendetta mode ;) bot try to find AFK with gold, but in case found enemy - attack him (in usual mode bot attack enemy only in case prize will be equal to greated 100 gold for each warrior)<br>
