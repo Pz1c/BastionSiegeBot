@@ -1194,8 +1194,8 @@ function getDecision() {
   }
   console.log('hireDecision before', castle);
   hireDecision();
-  //console.log('showballDecision before', castle);
-  //snowballDecision();
+  console.log('showballDecision before', castle);
+  snowballDecision();
   console.log('getDecision', castle);
   calcAITimeout();
   return '';
@@ -1285,7 +1285,7 @@ function getParamsFromStorage() {
     castle.settings.search_trusted_only = false;
   }
   if (!('snowball' in castle.settings)) {
-    castle.settings.snowball = true;
+    castle.settings.snowball = false;
     castle.snowball_delay = 0;
   }
   
@@ -2574,12 +2574,12 @@ function parseTreasure(info) {
 
 function parseSnowball(info) {
   if (info.indexOf('too often') != -1) {
-    castle.snowball_delay = time() + 30;
+    castle.snowball_delay = time() + 50;
   }
   if (getInt(info) > 1000000) {
     refreshCastleInfo('after snowball', false);
     //castle.task_list = [{type:'command',position_id:ai_position_id_top,command:command_info,comment:'after snowball'}];
-    castle.snowball_delay = time() + 70;
+    castle.snowball_delay = time() + 120;
   }
   return true;
 }
