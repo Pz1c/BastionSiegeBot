@@ -1829,9 +1829,9 @@ function parseCommandResultDOM() {
     
     $(msg[i]).attr('id', 'msg_id_' + (++msg_id));
     var check_command = msg_text.toLowerCase();
-    //if ((first_parsing === 0) && (check_command != const_bot_start_command)) {
+    // if ((first_parsing === 0) && (check_command != const_bot_start_command)) {
     //  continue;
-    //}
+    // }
     
     if ((first_parsing > 1) && (author != const_bot_name)) {
       last_command = msg_text;
